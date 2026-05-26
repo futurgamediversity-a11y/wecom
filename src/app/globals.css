@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #fafafa;
+  --foreground: #111827;
+  --primary: #ff8200;
+  --secondary: #009639;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --muted: #6b7280;
+}
+
+[data-theme="dark"] {
+  --background: #090a0f;
+  --foreground: #ffffff;
+  --primary: #ff8200;
+  --secondary: #009639;
+  --card: #1e202a;
+  --border: rgba(255, 255, 255, 0.06);
+  --muted: rgba(255, 255, 255, 0.7);
+}
+
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Diagonal split background used on the role-select page. */
+.diagonal-split {
+  background:
+    linear-gradient(135deg, transparent 0%, transparent 50%, #121212 50.1%, #121212 100%);
+}
+
+/* Soft dot pattern, matches DotPainter in role_screen.dart */
+.bg-dots-green {
+  background-image: radial-gradient(circle, rgba(0, 150, 57, 0.15) 1.5px, transparent 1.5px);
+  background-size: 35px 35px;
+}
+.bg-dots-orange {
+  background-image: radial-gradient(circle, rgba(255, 130, 0, 0.15) 1.5px, transparent 1.5px);
+  background-size: 35px 35px;
+}

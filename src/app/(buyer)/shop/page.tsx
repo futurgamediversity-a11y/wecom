@@ -13,7 +13,7 @@ import {
   Star,
   ShoppingBag,
 } from "lucide-react";
-import { categories, recentSearches, products as fallbackProducts } from "@/lib/mock-data";
+import { categories, recentSearches, products as fallbackProducts, type Product } from "@/lib/mock-data";
 import { formatXOF } from "@/lib/format";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -37,7 +37,7 @@ export default function ShopPage() {
         const fetchedProducts = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        })) as any[];
+        })) as Product[];
         
         if (fetchedProducts.length > 0) {
           setProducts(fetchedProducts);
@@ -147,7 +147,7 @@ export default function ShopPage() {
 function ProductCard({
   p,
 }: {
-  p: any;
+  p: Product;
 }) {
   const images = p.images || [];
   const imageUrl = images.length > 0 ? images[0] : "/images/app_icon.png";

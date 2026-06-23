@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -10,8 +13,10 @@ import {
   Star,
   ShoppingBag,
 } from "lucide-react";
-import { categories, products, recentSearches } from "@/lib/mock-data";
+import { categories, recentSearches, products as fallbackProducts } from "@/lib/mock-data";
 import { formatXOF } from "@/lib/format";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Zap,
@@ -22,12 +27,28 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Sofa,
 };
 
-/**
- * Port of lib/screens/shop_screen.dart — the buyer home/shop.
- * Layout: hero banner + category pills + recent searches + product grid.
- * Desktop grid: 4 columns of product cards; collapses gracefully.
- */
 export default function ShopPage() {
+  const [products, setProducts] = useState(fallbackProducts);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const querySnapshot = await getDocs(collection(db, "products"));
+        const fetchedProducts = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as any[];
+        
+        if (fetchedProducts.length > 0) {
+          setProducts(fetchedProducts);
+        }
+      } catch (error) {
+        console.error("Error fetching products from Firebase:", error);
+      }
+    }
+    
+    fetchProducts();
+  }, []);
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
       {/* Hero strip */}
@@ -126,8 +147,14 @@ export default function ShopPage() {
 function ProductCard({
   p,
 }: {
-  p: import("@/lib/mock-data").Product;
+  p: any;
 }) {
+  const images = p.images || [];
+  const imageUrl = images.length > 0 ? images[0] : "/images/app_icon.png";
+  const rating = p.rating || 0;
+  const reviewCount = p.reviewCount || 0;
+  const price = p.price || 0;
+  
   return (
     <Link
       href={`/product/${p.id}`}
@@ -135,8 +162,8 @@ function ProductCard({
     >
       <div className="relative aspect-square w-full overflow-hidden bg-neutral-100">
         <Image
-          src={p.images[0]}
-          alt={p.name}
+          src={imageUrl}
+          alt={p.name || "Product"}
           fill
           sizes="(max-width: 768px) 50vw, 25vw"
           className="object-cover transition group-hover:scale-105"
@@ -155,12 +182,12 @@ function ProductCard({
         <div className="mt-1 flex items-center gap-2">
           <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
           <span className="text-xs font-semibold text-neutral-700">
-            {p.rating.toFixed(1)}
+            {rating.toFixed(1)}
           </span>
-          <span className="text-xs text-neutral-400">({p.reviewCount})</span>
+          <span className="text-xs text-neutral-400">({reviewCount})</span>
         </div>
         <div className="mt-1 text-base font-black text-wcom-orange">
-          {formatXOF(p.price)}
+          {formatXOF(price)}
         </div>
       </div>
     </Link>

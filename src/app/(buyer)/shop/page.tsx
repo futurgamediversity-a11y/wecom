@@ -34,12 +34,19 @@ export default function ShopPage() {
   useEffect(() => {
     async function fetchProducts() {
       try {
+        console.log("Fetching products from Firebase...");
         const querySnapshot = await getDocs(collection(db, "products"));
-        const fetchedProducts = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Product[];
+        console.log("Query snapshot size:", querySnapshot.size);
+        const fetchedProducts = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          console.log("Product doc:", doc.id, data);
+          return {
+            id: doc.id,
+            ...data
+          } as Product;
+        });
         
+        console.log("Fetched products:", fetchedProducts);
         if (fetchedProducts.length > 0) {
           setProducts(fetchedProducts);
         }
@@ -56,12 +63,22 @@ export default function ShopPage() {
     <main className="mx-auto max-w-7xl px-6 py-8">
       {firebaseError && (
         <div className="mb-8 rounded-lg bg-red-50 p-4 border border-red-200">
-          <h3 className="text-red-800 font-bold">⚠️ Firebase Connection Failed</h3>
+          <h3 className="text-red-800 font-bold">⚠️ Firebase Error</h3>
           <p className="text-red-600 text-sm mt-1">{firebaseError}</p>
           <p className="text-red-600 text-sm mt-2">
             <strong>Currently showing mock data.</strong> To fix this:
-            <br />1. Ensure your NEXT_PUBLIC_FIREBASE variables are set in Netlify.
-            <br />2. Ensure your Firestore Database Rules allow reading (`allow read: if true;`).
+            <br />1. Go to Firebase Console → Firestore Database → Rules
+            <br />2. Set your rules to allow read access (at least for testing):
+            <pre className="bg-red-100 p-2 rounded mt-2 text-xs">
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /products/{product} {
+      allow read: if true;
+    }
+  }
+}
+            </pre>
           </p>
         </div>
       )}

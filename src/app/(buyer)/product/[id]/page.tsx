@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -10,30 +13,69 @@ import {
   Store,
   ShoppingBag,
 } from "lucide-react";
-import { productById, products } from "@/lib/mock-data";
+import { products as fallbackProducts, type Product } from "@/lib/mock-data";
 import { formatXOF } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
+export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const [product, setProduct] = useState<Product | null>(null);
+  const [suggestions, setSuggestions] = useState<Product[]>(fallbackProducts);
+  const [loading, setLoading] = useState(true);
+  const [id, setId] = useState<string | null>(null);
 
-export async function generateStaticParams() {
-  return products.map((p) => ({
-    id: p.id,
-  }));
-}
+  useEffect(() => {
+    async function init() {
+      const { id: paramId } = await params;
+      setId(paramId);
+      await fetchProduct(paramId);
+      await fetchSuggestions(paramId);
+      setLoading(false);
+    }
+    init();
+  }, [params]);
 
-/**
- * Port of lib/screens/product_details_screen.dart — two-column desktop layout:
- *   left = image carousel-like gallery (main + thumbnails)
- *   right = title, rating, price, variants, qty, store info, CTAs
- *   below = description + suggested products.
- */
-export default async function ProductPage({ params }: PageProps) {
-  const { id } = await params;
-  const p = productById(id);
-  if (!p) notFound();
+  async function fetchProduct(productId: string) {
+    try {
+      const docRef = doc(db, "products", productId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setProduct({ id: docSnap.id, ...docSnap.data() } as Product);
+      } else {
+        const fallback = fallbackProducts.find(p => p.id === productId);
+        if (fallback) setProduct(fallback);
+      }
+    } catch (e) {
+      console.error("Error fetching product:", e);
+      const fallback = fallbackProducts.find(p => p.id === productId);
+      if (fallback) setProduct(fallback);
+    }
+  }
+
+  async function fetchSuggestions(excludeId: string) {
+    try {
+      const querySnapshot = await getDocs(collection(db, "products"));
+      const fetched = querySnapshot.docs.map(doc => ({
+        id: doc.id, ...doc.data()
+      })) as Product[];
+      if (fetched.length > 0) {
+        setSuggestions(fetched.filter(p => p.id !== excludeId).slice(0, 4));
+      }
+    } catch (e) {
+      console.error("Error fetching suggestions:", e);
+    }
+  }
+
+  if (loading) {
+    return <main className="mx-auto max-w-7xl px-6 py-8">Chargement...</main>;
+  }
+
+  if (!product) {
+    notFound();
+  }
+
+  const p = product;
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
@@ -239,9 +281,7 @@ export default async function ProductPage({ params }: PageProps) {
       <section className="mt-14">
         <h2 className="text-xl font-black">Vous aimerez aussi</h2>
         <div className="mt-5 grid grid-cols-2 gap-5 md:grid-cols-4">
-          {products
-            .filter((x) => x.id !== p.id)
-            .slice(0, 4)
+          {suggestions
             .map((x) => (
               <Link
                 key={x.id}

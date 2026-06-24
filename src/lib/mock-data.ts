@@ -12,18 +12,18 @@ export type Category = {
 
 export type Product = {
   id: string;
-  name: string;
-  description: string;
-  price: number;
-  currency: "XOF";
-  images: string[]; // urls
-  category: string;
-  storeId: string;
-  storeName: string;
+  name?: string;
+  description?: string;
+  price?: number;
+  currency?: "XOF";
+  images?: string[]; // urls
+  category?: string;
+  storeId?: string;
+  storeName?: string;
   storePlan?: "free" | "premium" | "enterprise";
-  rating: number;
-  reviewCount: number;
-  stock: number;
+  rating?: number;
+  reviewCount?: number;
+  stock?: number;
   variants?: { name: string; options: string[] }[];
   flashSale?: boolean;
 };

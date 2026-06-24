@@ -18,6 +18,12 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+export async function generateStaticParams() {
+  return products.map((p) => ({
+    id: p.id,
+  }));
+}
+
 /**
  * Port of lib/screens/product_details_screen.dart — two-column desktop layout:
  *   left = image carousel-like gallery (main + thumbnails)

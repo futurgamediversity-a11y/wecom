@@ -7,14 +7,7 @@
 
 [build]
   command = "npm run build"
-  publish = ".next"
 
 [build.environment]
   # Pin Node to a Next.js 15 / React 19-compatible LTS.
   NODE_VERSION = "20"
-
-# The official plugin is what makes App Router routes (server
-# components, /shop, /product/[id], etc.) actually resolve on
-# Netlify's edge/serverless runtime.
-[[plugins]]
-  package = "@netlify/plugin-nextjs"

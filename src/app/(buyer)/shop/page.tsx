@@ -28,7 +28,8 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 export default function ShopPage() {
-  const [products, setProducts] = useState(fallbackProducts);
+  const [products, setProducts] = useState<Product[]>(fallbackProducts);
+  const [firebaseError, setFirebaseError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -42,8 +43,9 @@ export default function ShopPage() {
         if (fetchedProducts.length > 0) {
           setProducts(fetchedProducts);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching products from Firebase:", error);
+        setFirebaseError(error.message || "Unknown Firebase error");
       }
     }
     
@@ -51,6 +53,17 @@ export default function ShopPage() {
   }, []);
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
+      {firebaseError && (
+        <div className="mb-8 rounded-lg bg-red-50 p-4 border border-red-200">
+          <h3 className="text-red-800 font-bold">⚠️ Firebase Connection Failed</h3>
+          <p className="text-red-600 text-sm mt-1">{firebaseError}</p>
+          <p className="text-red-600 text-sm mt-2">
+            <strong>Currently showing mock data.</strong> To fix this:
+            <br />1. Ensure your NEXT_PUBLIC_FIREBASE variables are set in Netlify.
+            <br />2. Ensure your Firestore Database Rules allow reading (`allow read: if true;`).
+          </p>
+        </div>
+      )}
       {/* Hero strip */}
       <section className="overflow-hidden rounded-xl bg-gradient-to-br from-wcom-orange to-amber-500 p-8 text-white">
         <div className="flex items-center gap-6">

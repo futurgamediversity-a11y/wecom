@@ -43,9 +43,10 @@ export default function ShopPage() {
         if (fetchedProducts.length > 0) {
           setProducts(fetchedProducts);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error fetching products from Firebase:", error);
-        setFirebaseError(error.message || "Unknown Firebase error");
+        const errorMessage = error instanceof Error ? error.message : "Unknown Firebase error";
+        setFirebaseError(errorMessage);
       }
     }
     

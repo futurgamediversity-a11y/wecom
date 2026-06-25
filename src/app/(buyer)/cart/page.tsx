@@ -17,7 +17,7 @@ export default function CartPage() {
     products.slice(0, 2).map((p) => ({ ...p, quantity: 1 }))
   );
 
-  const total = items.reduce((acc, i) => acc + i.price * i.quantity, 0);
+  const total = items.reduce((acc, i) => acc + (i.price || 0) * i.quantity, 0);
   const deliveryFee = items.length ? 1500 : 0;
   const grandTotal = total + deliveryFee;
 
@@ -63,8 +63,8 @@ export default function CartPage() {
             >
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md bg-neutral-100">
                 <Image
-                  src={i.images[0]}
-                  alt={i.name}
+                  src={(i.images && i.images[0]) || "/images/app_icon.png"}
+                  alt={i.name || "Product"}
                   fill
                   sizes="96px"
                   className="object-cover"
@@ -109,7 +109,7 @@ export default function CartPage() {
                     </button>
                   </div>
                   <p className="text-base font-black text-wcom-orange">
-                    {formatXOF(i.price * i.quantity)}
+                    {formatXOF((i.price || 0) * i.quantity)}
                   </p>
                 </div>
               </div>

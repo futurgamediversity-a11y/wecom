@@ -15,7 +15,7 @@ import { formatXOF } from "@/lib/format";
  */
 export default function CheckoutPage() {
   const items = products.slice(0, 2).map((p) => ({ ...p, quantity: 1 }));
-  const total = items.reduce((acc, i) => acc + i.price * i.quantity, 0);
+  const total = items.reduce((acc, i) => acc + (i.price || 0) * i.quantity, 0);
   const delivery = 1500;
   const [commune, setCommune] = useState(communes[0]);
 
@@ -124,7 +124,7 @@ export default function CheckoutPage() {
                     <span className="text-neutral-500">× {i.quantity}</span>
                   </span>
                   <span className="font-bold">
-                    {formatXOF(i.price * i.quantity)}
+                    {formatXOF((i.price || 0) * i.quantity)}
                   </span>
                 </li>
               ))}

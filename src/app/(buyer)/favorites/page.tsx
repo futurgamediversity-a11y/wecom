@@ -47,8 +47,8 @@ export default function FavoritesPage() {
                   className="relative h-28 w-28 shrink-0 overflow-hidden rounded-md bg-neutral-100"
                 >
                   <Image
-                    src={p.images[0]}
-                    alt={p.name}
+                    src={(p.images && p.images[0]) || "/images/app_icon.png"}
+                    alt={p.name || "Product"}
                     fill
                     sizes="112px"
                     className="object-cover"
@@ -63,7 +63,7 @@ export default function FavoritesPage() {
                   </Link>
                   <p className="text-xs text-neutral-500">{p.storeName}</p>
                   <p className="mt-1 text-base font-black text-wcom-orange">
-                    {formatXOF(p.price)}
+                    {formatXOF(p.price || 0)}
                   </p>
                   <div className="mt-auto flex items-center justify-between gap-2 pt-3">
                     <Link href={`/product/${p.id}`} className="flex-1">

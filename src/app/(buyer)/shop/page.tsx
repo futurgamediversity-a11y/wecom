@@ -70,14 +70,14 @@ export default function ShopPage() {
             <br />1. Go to Firebase Console → Firestore Database → Rules
             <br />2. Set your rules to allow read access (at least for testing):
             <pre className="bg-red-100 p-2 rounded mt-2 text-xs">
-rules_version = '2';
+{`rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /products/{product} {
       allow read: if true;
     }
   }
-}
+}`}
             </pre>
           </p>
         </div>

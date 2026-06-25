@@ -16,7 +16,7 @@ import { formatXOF } from "@/lib/format";
 export default function PaymentPage() {
   const [method, setMethod] = useState(paymentMethods[0].id);
   const items = products.slice(0, 2).map((p) => ({ ...p, quantity: 1 }));
-  const total = items.reduce((acc, i) => acc + i.price * i.quantity, 0) + 1500;
+  const total = items.reduce((acc, i) => acc + (i.price || 0) * i.quantity, 0) + 1500;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">

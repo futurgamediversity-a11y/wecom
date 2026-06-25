@@ -42,7 +42,18 @@ export default function ShopPage() {
           console.log("Product doc:", doc.id, data);
           return {
             id: doc.id,
-            ...data
+            name: data.name,
+            description: data.description,
+            price: data.price,
+            currency: "XOF",
+            images: data.imageUrls || [data.imageUrl],
+            category: data.category,
+            storeId: data.storeId,
+            storeName: "Boutique", // We can update this later to fetch store info
+            rating: 0,
+            reviewCount: 0,
+            stock: data.quantity || 0,
+            status: data.status
           } as Product;
         });
         

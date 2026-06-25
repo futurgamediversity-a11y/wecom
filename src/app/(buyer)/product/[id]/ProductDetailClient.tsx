@@ -30,16 +30,46 @@ export default function ProductDetailClient({ id }: { id: string }) {
         const docRef = doc(db, "products", id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setProduct({ id: docSnap.id, ...docSnap.data() } as Product);
+          const data = docSnap.data();
+          setProduct({
+            id: docSnap.id,
+            name: data.name,
+            description: data.description,
+            price: data.price,
+            currency: "XOF",
+            images: data.imageUrls || [data.imageUrl],
+            category: data.category,
+            storeId: data.storeId,
+            storeName: "Boutique",
+            rating: 0,
+            reviewCount: 0,
+            stock: data.quantity || 0,
+            status: data.status
+          } as Product);
         } else {
           const fallback = fallbackProducts.find(p => p.id === id);
           if (fallback) setProduct(fallback);
         }
 
         const querySnapshot = await getDocs(collection(db, "products"));
-        const fetched = querySnapshot.docs.map(doc => ({
-          id: doc.id, ...doc.data()
-        })) as Product[];
+        const fetched = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name,
+            description: data.description,
+            price: data.price,
+            currency: "XOF",
+            images: data.imageUrls || [data.imageUrl],
+            category: data.category,
+            storeId: data.storeId,
+            storeName: "Boutique",
+            rating: 0,
+            reviewCount: 0,
+            stock: data.quantity || 0,
+            status: data.status
+          } as Product;
+        });
         if (fetched.length > 0) {
           setSuggestions(fetched.filter(p => p.id !== id).slice(0, 4));
         }

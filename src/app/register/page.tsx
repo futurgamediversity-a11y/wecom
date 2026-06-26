@@ -7,6 +7,8 @@ import { Mail, Lock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 /**
  * Port of lib/screens/register_screen.dart — same visual register card
@@ -20,7 +22,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     if (password !== confirm) {
@@ -28,10 +30,24 @@ export default function RegisterPage() {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    
+    try {
+      // Create user with Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Update profile with display name
+      if (userCredential.user) {
+        await updateProfile(userCredential.user, {
+          displayName: name
+        });
+      }
+      
+      // Redirect to role page
       window.location.href = "/role";
-    }, 600);
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      setErr(error.message || "Erreur lors de la création du compte.");
+      setLoading(false);
+    }
   }
 
   return (

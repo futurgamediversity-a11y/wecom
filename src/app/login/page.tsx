@@ -7,6 +7,8 @@ import { Mail, Lock, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 /**
  * Port of lib/screens/login_screen.dart.
@@ -17,15 +19,22 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !password) return;
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    setErr(null);
+    
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       window.location.href = "/role";
-    }, 600);
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setErr(error.message || "Erreur de connexion.");
+      setLoading(false);
+    }
   }
 
   return (
@@ -48,6 +57,12 @@ export default function LoginPage() {
           <h1 className="mt-6 text-center text-2xl font-bold text-black">
             Connectez-vous pour continuer
           </h1>
+
+          {err ? (
+            <p className="mt-4 rounded-sm border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {err}
+            </p>
+          ) : null}
 
           <form onSubmit={handleSubmit} className="mt-10 space-y-5">
             <div>

@@ -2,19 +2,74 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heart, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { products } from "@/lib/mock-data";
+import { type Product } from "@/lib/mock-data";
 import { formatXOF } from "@/lib/format";
+import { useAuth } from "@/lib/auth-context";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 /**
  * Port of lib/screens/favorites_screen.dart — list of favorited products
  * with quick-action to remove or jump to the product page.
  */
 export default function FavoritesPage() {
-  const [list, setList] = useState(() => products.slice(0, 4));
+  const { user, favorites, toggleFavorite, loading } = useAuth();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFavoriteProducts = async () => {
+      if (!user || favorites.length === 0) {
+        setProducts([]);
+        setProductsLoading(false);
+        return;
+      }
+
+      try {
+        const productsData: Product[] = [];
+        for (const productId of favorites) {
+          const productDoc = await getDoc(doc(db, "products", productId));
+          if (productDoc.exists()) {
+            const data = productDoc.data();
+            productsData.push({
+              id: productDoc.id,
+              name: data.name,
+              description: data.description,
+              price: data.price,
+              currency: "XOF",
+              images: data.imageUrls || [data.imageUrl],
+              category: data.category,
+              storeId: data.storeId,
+              storeName: "Boutique",
+              rating: 0,
+              reviewCount: 0,
+              stock: data.quantity || 0,
+              status: data.status
+            });
+          }
+        }
+        setProducts(productsData);
+      } catch (error) {
+        console.error("Error fetching favorite products:", error);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    fetchFavoriteProducts();
+  }, [user, favorites]);
+
+  if (loading || productsLoading) {
+    return (
+      <main className="mx-auto max-w-7xl px-6 py-8">
+        <p>Chargement...</p>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
@@ -23,10 +78,10 @@ export default function FavoritesPage() {
         Retrouvez les articles que vous avez enregistrés.
       </p>
 
-      {list.length === 0 ? (
+      {products.length === 0 ? (
         <Card className="mt-8 p-10 text-center">
           <Heart className="mx-auto h-12 w-12 text-neutral-300" />
-          <h2 className="mt-3 text-lg font-bold">Aucun favori</h2>
+          <h2 className="mt-3 text-lg font-bold">Vous n'avez pas encore de favoris</h2>
           <p className="mt-1 text-sm text-neutral-500">
             Cliquez sur le cœur d&apos;un produit pour l&apos;ajouter ici.
           </p>
@@ -39,7 +94,7 @@ export default function FavoritesPage() {
         </Card>
       ) : (
         <ul className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-          {list.map((p) => (
+          {products.map((p) => (
             <li key={p.id}>
               <Card className="flex gap-4 p-4">
                 <Link
@@ -72,9 +127,7 @@ export default function FavoritesPage() {
                       </Button>
                     </Link>
                     <button
-                      onClick={() =>
-                        setList((arr) => arr.filter((x) => x.id !== p.id))
-                      }
+                      onClick={() => toggleFavorite(p.id)}
                       className="rounded-sm border border-neutral-200 p-2 text-neutral-400 hover:border-red-300 hover:bg-red-50 hover:text-red-500"
                       aria-label="Retirer des favoris"
                     >

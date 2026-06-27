@@ -3,7 +3,13 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc, Timestamp } from "firebase/firestore";
+
+interface Favorite {
+  productId: string;
+  userId: string;
+  timestamp: Timestamp;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -22,54 +28,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    let unsubscribeFavorites: (() => void) | null = null;
+    
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       
       if (currentUser) {
-        // Fetch user's favorites from Firestore
+        // Create user document if it doesn't exist
         try {
           const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-          if (userDoc.exists()) {
-            setFavorites(userDoc.data().favorites || []);
-          } else {
-            // Create user document if it doesn't exist
+          if (!userDoc.exists()) {
             await setDoc(doc(db, "users", currentUser.uid), {
               displayName: currentUser.displayName,
               email: currentUser.email,
-              createdAt: new Date(),
-              favorites: []
+              createdAt: new Date()
             });
           }
         } catch (error) {
-          console.error("Error fetching user data:", error);
+          console.error("Error with user document:", error);
         }
+        
+        // Fetch user's favorites from "favorites" collection
+        const fetchFavorites = async () => {
+          try {
+            const q = query(collection(db, "favorites"), where("userId", "==", currentUser.uid));
+            const querySnapshot = await getDocs(q);
+            const favoriteProductIds = querySnapshot.docs.map(doc => doc.data().productId as string);
+            setFavorites(favoriteProductIds);
+          } catch (error) {
+            console.error("Error fetching favorites:", error);
+          }
+        };
+        
+        fetchFavorites();
       } else {
-        setFavorites([]);
-      }
+          setFavorites([]);
+        }
       
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeFavorites) unsubscribeFavorites();
+    };
   }, []);
 
   // Toggle favorite product
   const toggleFavorite = async (productId: string) => {
     if (!user) return;
-
-    const userDocRef = doc(db, "users", user.uid);
     
     try {
       if (favorites.includes(productId)) {
         // Remove from favorites
-        await updateDoc(userDocRef, {
-          favorites: arrayRemove(productId)
-        });
+        const q = query(
+          collection(db, "favorites"),
+          where("userId", "==", user.uid),
+          where("productId", "==", productId)
+        );
+        const querySnapshot = await getDocs(q);
+        for (const doc of querySnapshot.docs) {
+          await deleteDoc(doc.ref);
+        }
         setFavorites(prev => prev.filter(id => id !== productId));
       } else {
         // Add to favorites
-        await updateDoc(userDocRef, {
-          favorites: arrayUnion(productId)
+        await addDoc(collection(db, "favorites"), {
+          productId,
+          userId: user.uid,
+          timestamp: Timestamp.now()
         });
         setFavorites(prev => [...prev, productId]);
       }

@@ -1,39 +1,87 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useState, useEffect } from "react";
 import { CheckCircle2, Clock, Truck, XCircle, PackageCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { mockOrders, type OrderStatus } from "@/lib/mock-data";
+import { type OrderStatus } from "@/lib/mock-data";
 import { formatXOF, formatDateFR } from "@/lib/format";
+import { useAuth } from "@/lib/auth-context";
+import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+interface OrderItem {
+  name: string;
+  quantity: number;
+  price: number;
+  imageUrl: string;
+}
+
+interface Order {
+  id: string;
+  status: OrderStatus;
+  total: number;
+  items: OrderItem[];
+  address: string;
+  paymentMethod: string;
+  createdAt: Date;
+}
 
 const STATUS_META: Record<
-  OrderStatus,
+  string,
   {
     label: string;
     pill: string;
     icon: React.ComponentType<{ className?: string }>;
   }
 > = {
+  "pending": {
+    label: "En attente",
+    pill: "bg-amber-100 text-amber-700",
+    icon: Clock,
+  },
   "en attente": {
     label: "En attente",
     pill: "bg-amber-100 text-amber-700",
     icon: Clock,
   },
-  confirmée: {
+  "confirmed": {
     label: "Confirmée",
     pill: "bg-green-100 text-green-700",
     icon: CheckCircle2,
+  },
+  "confirmée": {
+    label: "Confirmée",
+    pill: "bg-green-100 text-green-700",
+    icon: CheckCircle2,
+  },
+  "in_delivery": {
+    label: "En livraison",
+    pill: "bg-blue-100 text-blue-700",
+    icon: Truck,
   },
   "en livraison": {
     label: "En livraison",
     pill: "bg-blue-100 text-blue-700",
     icon: Truck,
   },
-  livrée: {
+  "delivered": {
     label: "Livrée",
     pill: "bg-emerald-100 text-emerald-700",
     icon: PackageCheck,
   },
-  annulée: {
+  "livrée": {
+    label: "Livrée",
+    pill: "bg-emerald-100 text-emerald-700",
+    icon: PackageCheck,
+  },
+  "cancelled": {
+    label: "Annulée",
+    pill: "bg-red-100 text-red-700",
+    icon: XCircle,
+  },
+  "annulée": {
     label: "Annulée",
     pill: "bg-red-100 text-red-700",
     icon: XCircle,
@@ -45,6 +93,65 @@ const STATUS_META: Record<
  * with status pill, item count, total, and a "voir détails" CTA.
  */
 export default function OrdersPage() {
+  const { user, loading: authLoading } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!user) {
+        setOrders([]);
+        setOrdersLoading(false);
+        return;
+      }
+
+      try {
+        const q = query(collection(db, "orders"), where("buyerId", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+        
+        const ordersData: Order[] = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          const items: OrderItem[] = (data.items || []).map((item: any) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            imageUrl: item.imageUrl
+          }));
+          
+          return {
+            id: doc.id,
+            status: (data.status as string) as OrderStatus,
+            total: data.totalAmount,
+            items,
+            address: data.deliveryInfo 
+              ? `${data.deliveryInfo.address}, ${data.deliveryInfo.common}` 
+              : "",
+            paymentMethod: data.paymentMethod,
+            createdAt: data.timestamp instanceof Timestamp 
+              ? data.timestamp.toDate() 
+              : new Date()
+          };
+        });
+        
+        setOrders(ordersData.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [user]);
+
+  if (authLoading || ordersLoading) {
+    return (
+      <main className="mx-auto max-w-5xl px-6 py-8">
+        <p>Chargement...</p>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
       <h1 className="text-2xl font-black">Mes commandes</h1>
@@ -52,7 +159,7 @@ export default function OrdersPage() {
         Suivez et gérez vos commandes en cours et passées.
       </p>
 
-      {mockOrders.length === 0 ? (
+      {orders.length === 0 ? (
         <Card className="mt-8 p-10 text-center">
           <PackageCheck className="mx-auto h-12 w-12 text-neutral-300" />
           <h2 className="mt-3 text-lg font-bold">Aucune commande</h2>
@@ -68,8 +175,8 @@ export default function OrdersPage() {
         </Card>
       ) : (
         <ul className="mt-6 space-y-4">
-          {mockOrders.map((o) => {
-            const meta = STATUS_META[o.status];
+          {orders.map((o) => {
+            const meta = STATUS_META[o.status] || STATUS_META["pending"];
             const Icon = meta.icon;
             return (
               <li key={o.id}>
@@ -87,7 +194,7 @@ export default function OrdersPage() {
                           {meta.label}
                         </span>
                         <span className="text-xs text-neutral-500">
-                          {formatDateFR(o.createdAt)}
+                          {formatDateFR(o.createdAt.toISOString())}
                         </span>
                       </div>
                       <h2 className="mt-2 text-sm font-bold text-neutral-900">

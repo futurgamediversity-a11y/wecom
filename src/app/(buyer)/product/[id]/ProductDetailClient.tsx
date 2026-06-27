@@ -18,11 +18,20 @@ import { formatXOF } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useAuth } from "@/lib/auth-context";
 
 export default function ProductDetailClient({ id }: { id: string }) {
   const [product, setProduct] = useState<Product | null>(null);
   const [suggestions, setSuggestions] = useState<Product[]>(fallbackProducts);
   const [loading, setLoading] = useState(true);
+  const { favorites, toggleFavorite, user } = useAuth();
+  const isFavorite = product ? favorites.includes(product.id) : false;
+  
+  const handleFavoriteClick = () => {
+    if (user && product) {
+      toggleFavorite(product.id);
+    }
+  };
 
   useEffect(() => {
     async function fetchProductData() {
@@ -151,10 +160,17 @@ export default function ProductDetailClient({ id }: { id: string }) {
             </h1>
             <div className="flex items-center gap-2">
               <button
+                onClick={handleFavoriteClick}
                 className="rounded-full border border-neutral-200 bg-white p-2 text-neutral-600 hover:border-wcom-orange/40 hover:text-wcom-orange"
                 aria-label="Ajouter aux favoris"
               >
-                <Heart className="h-5 w-5" />
+                <Heart 
+                  className={`h-5 w-5 ${
+                    isFavorite 
+                      ? "fill-wcom-orange text-wcom-orange" 
+                      : ""
+                  }`} 
+                />
               </button>
               <button
                 className="rounded-full border border-neutral-200 bg-white p-2 text-neutral-600 hover:border-wcom-orange/40 hover:text-wcom-orange"

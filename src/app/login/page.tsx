@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { useAuth } from "@/lib/auth-context";
 
 /**
  * Port of lib/screens/login_screen.dart.
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const { signInWithGoogle } = useAuth();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,6 +36,16 @@ export default function LoginPage() {
       console.error("Login error:", error);
       setErr(error.message || "Erreur de connexion.");
       setLoading(false);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    try {
+      await signInWithGoogle();
+      window.location.href = "/role";
+    } catch (error: any) {
+      console.error("Google sign in error:", error);
+      setErr(error.message || "Erreur de connexion Google.");
     }
   }
 
@@ -123,7 +135,12 @@ export default function LoginPage() {
 
           {/* Social */}
           <div className="mt-6 space-y-3">
-            <Button variant="outline" size="md" className="w-full gap-3">
+            <Button 
+              variant="outline" 
+              size="md" 
+              className="w-full gap-3"
+              onClick={handleGoogleSignIn}
+            >
               <span className="text-blue-500 text-lg font-black">G</span>
               Continuer avec Google
             </Button>

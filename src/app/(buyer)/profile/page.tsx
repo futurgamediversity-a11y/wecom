@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   User,
   MapPin,
@@ -12,12 +15,35 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useAuth } from "@/lib/auth-context";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 /**
  * Port of lib/screens/buyer_profile_screen.dart — buyer account hub.
  * Avatar + name + email header, then a settings-style grouped list.
  */
 export default function ProfilePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-3xl px-6 py-8">
+        <p>Chargement...</p>
+      </main>
+    );
+  }
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-8">
       <Card className="p-6">
@@ -26,9 +52,9 @@ export default function ProfilePage() {
             <User className="h-7 w-7" />
           </div>
           <div className="flex-1">
-            <h1 className="text-xl font-black">Bienvenue, Calvin</h1>
+            <h1 className="text-xl font-black">Bienvenue, {user?.displayName || "Utilisateur"}</h1>
             <p className="text-sm text-neutral-500">
-              calvinunsafe@gmail.com · membre depuis Mai 2026
+              {user?.email}
             </p>
           </div>
           <Link
@@ -91,10 +117,10 @@ export default function ProfilePage() {
 
         <Group title="Session">
           <Row
-            href="/login"
             icon={<LogOut className="h-5 w-5" />}
             label="Se déconnecter"
             destructive
+            onClick={handleLogout}
           />
         </Group>
       </section>
@@ -119,18 +145,17 @@ function Row({
   label,
   sub,
   destructive,
+  onClick,
 }: {
-  href: string;
+  href?: string;
   icon: React.ReactNode;
   label: string;
   sub?: string;
   destructive?: boolean;
+  onClick?: () => void;
 }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-4 p-4 hover:bg-neutral-50"
-    >
+  const content = (
+    <div className="flex items-center gap-4 p-4 hover:bg-neutral-50 cursor-pointer">
       <span
         className={
           "grid h-10 w-10 place-items-center rounded-md " +
@@ -153,6 +178,12 @@ function Row({
         {sub ? <p className="text-xs text-neutral-500">{sub}</p> : null}
       </div>
       <ChevronRight className="h-4 w-4 text-neutral-400" />
-    </Link>
+    </div>
   );
+
+  if (href) {
+    return <Link href={href}>{content}</Link>;
+  }
+
+  return <div onClick={onClick}>{content}</div>;
 }

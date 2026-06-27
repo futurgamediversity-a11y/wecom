@@ -12,11 +12,13 @@ import {
   Sofa,
   Star,
   ShoppingBag,
+  Heart,
 } from "lucide-react";
 import { categories, recentSearches, products as fallbackProducts, type Product } from "@/lib/mock-data";
 import { formatXOF } from "@/lib/format";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useAuth } from "@/lib/auth-context";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Zap,
@@ -191,11 +193,21 @@ function ProductCard({
 }: {
   p: Product;
 }) {
+  const { favorites, toggleFavorite, user } = useAuth();
+  const isFavorite = favorites.includes(p.id);
+  
   const images = p.images || [];
   const imageUrl = images.length > 0 ? images[0] : "/images/app_icon.png";
   const rating = p.rating || 0;
   const reviewCount = p.reviewCount || 0;
   const price = p.price || 0;
+  
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (user) {
+      toggleFavorite(p.id);
+    }
+  };
   
   return (
     <Link
@@ -210,6 +222,18 @@ function ProductCard({
           sizes="(max-width: 768px) 50vw, 25vw"
           className="object-cover transition group-hover:scale-105"
         />
+        <button
+          onClick={handleFavoriteClick}
+          className="absolute right-2 top-2 rounded-full bg-white p-2 shadow-md hover:bg-neutral-50"
+        >
+          <Heart 
+            className={`h-4 w-4 ${
+              isFavorite 
+                ? "fill-wcom-orange text-wcom-orange" 
+                : "text-neutral-400"
+            }`} 
+          />
+        </button>
         {p.flashSale ? (
           <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-sm bg-wcom-orange px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white">
             <Zap className="h-3 w-3" /> Flash

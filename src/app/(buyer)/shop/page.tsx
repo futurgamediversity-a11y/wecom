@@ -14,7 +14,7 @@ import {
   ShoppingBag,
   Heart,
 } from "lucide-react";
-import { categories, recentSearches, products as fallbackProducts, type Product } from "@/lib/mock-data";
+import { type Product, type Category } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -25,23 +25,30 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutGrid,
   Shirt,
   Smartphone,
-  Sparkles,
   Sofa,
+  Sparkles,
 };
 
+const categories: Category[] = [
+  { id: "flash", name: "Ventes Flash", icon: "Zap", accent: "orange" },
+  { id: "all", name: "Tout", icon: "LayoutGrid", accent: "green" },
+  { id: "fashion", name: "Mode", icon: "Shirt" },
+  { id: "electronics", name: "Électronique", icon: "Smartphone" },
+  { id: "beauty", name: "Beauté", icon: "Sparkles" },
+  { id: "home", name: "Maison", icon: "Sofa" },
+];
+
+const recentSearches = ["Sneakers", "AirPods", "Robe Wax", "Montres"];
+
 export default function ShopPage() {
-  const [products, setProducts] = useState<Product[]>(fallbackProducts);
-  const [firebaseError, setFirebaseError] = useState<string | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     async function fetchProducts() {
       try {
-        console.log("Fetching products from Firebase...");
         const querySnapshot = await getDocs(collection(db, "products"));
-        console.log("Query snapshot size:", querySnapshot.size);
         const fetchedProducts = querySnapshot.docs.map(doc => {
           const data = doc.data();
-          console.log("Product doc:", doc.id, data);
           return {
             id: doc.id,
             name: data.name,
@@ -51,7 +58,7 @@ export default function ShopPage() {
             images: data.imageUrls || [data.imageUrl],
             category: data.category,
             storeId: data.storeId,
-            storeName: "Boutique", // We can update this later to fetch store info
+            storeName: "Boutique",
             rating: 0,
             reviewCount: 0,
             stock: data.quantity || 0,
@@ -59,14 +66,9 @@ export default function ShopPage() {
           } as Product;
         });
         
-        console.log("Fetched products:", fetchedProducts);
-        if (fetchedProducts.length > 0) {
-          setProducts(fetchedProducts);
-        }
+        setProducts(fetchedProducts);
       } catch (error: unknown) {
         console.error("Error fetching products from Firebase:", error);
-        const errorMessage = error instanceof Error ? error.message : "Unknown Firebase error";
-        setFirebaseError(errorMessage);
       }
     }
     
@@ -74,27 +76,7 @@ export default function ShopPage() {
   }, []);
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
-      {firebaseError && (
-        <div className="mb-8 rounded-lg bg-red-50 p-4 border border-red-200">
-          <h3 className="text-red-800 font-bold">⚠️ Firebase Error</h3>
-          <p className="text-red-600 text-sm mt-1">{firebaseError}</p>
-          <p className="text-red-600 text-sm mt-2">
-            <strong>Currently showing mock data.</strong> To fix this:
-            <br />1. Go to Firebase Console → Firestore Database → Rules
-            <br />2. Set your rules to allow read access (at least for testing):
-            <pre className="bg-red-100 p-2 rounded mt-2 text-xs">
-{`rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /products/{product} {
-      allow read: if true;
-    }
-  }
-}`}
-            </pre>
-          </p>
-        </div>
-      )}
+
       {/* Hero strip */}
       <section className="overflow-hidden rounded-xl bg-gradient-to-br from-wcom-orange to-amber-500 p-8 text-white">
         <div className="flex items-center gap-6">

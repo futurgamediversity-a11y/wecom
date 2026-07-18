@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { CheckCircle2, Clock, Truck, XCircle, PackageCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { type OrderStatus } from "@/lib/mock-data";
+import { type OrderStatus, type Order } from "@/lib/types";
 import { formatXOF, formatDateFR } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";

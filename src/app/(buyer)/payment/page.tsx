@@ -6,8 +6,16 @@ import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { paymentMethods, products } from "@/lib/mock-data";
+import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
+
+const paymentMethods = [
+  { id: "wave", name: "Wave", logo: "/images/payments/wave.png" },
+  { id: "om", name: "Orange Money", logo: "/images/payments/om.png" },
+  { id: "momo", name: "MTN Mobile Money", logo: "/images/payments/momo.png" },
+  { id: "moov", name: "Moov Money", logo: "/images/payments/moov.png" },
+  { id: "card", name: "Carte bancaire", logo: "/images/payments/card.png" },
+];
 
 /**
  * Port of lib/screens/payment_screen.dart — payment method picker.
@@ -15,8 +23,8 @@ import { formatXOF } from "@/lib/format";
  */
 export default function PaymentPage() {
   const [method, setMethod] = useState(paymentMethods[0].id);
-  const items = products.slice(0, 2).map((p) => ({ ...p, quantity: 1 }));
-  const total = items.reduce((acc, i) => acc + (i.price || 0) * i.quantity, 0) + 1500;
+  const items: (Product & { quantity: number })[] = [];
+  const total = 0;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">

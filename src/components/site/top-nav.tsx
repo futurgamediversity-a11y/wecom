@@ -13,10 +13,18 @@ import {
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { communes } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth-context";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
+
+const communes = [
+  "Cocody",
+  "Marcory",
+  "Yopougon",
+  "Plateau",
+  "Treichville",
+  "Bingerville",
+] as const;
 
 /**
  * Desktop-first top navigation.

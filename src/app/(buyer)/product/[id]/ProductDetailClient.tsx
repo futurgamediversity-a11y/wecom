@@ -13,7 +13,7 @@ import {
   Store,
   ShoppingBag,
 } from "lucide-react";
-import { products as fallbackProducts, type Product } from "@/lib/mock-data";
+import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
@@ -22,7 +22,7 @@ import { useAuth } from "@/lib/auth-context";
 
 export default function ProductDetailClient({ id }: { id: string }) {
   const [product, setProduct] = useState<Product | null>(null);
-  const [suggestions, setSuggestions] = useState<Product[]>(fallbackProducts);
+  const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { favorites, toggleFavorite, user } = useAuth();
   const isFavorite = product ? favorites.includes(product.id) : false;
@@ -55,9 +55,6 @@ export default function ProductDetailClient({ id }: { id: string }) {
             stock: data.quantity || 0,
             status: data.status
           } as Product);
-        } else {
-          const fallback = fallbackProducts.find(p => p.id === id);
-          if (fallback) setProduct(fallback);
         }
 
         const querySnapshot = await getDocs(collection(db, "products"));

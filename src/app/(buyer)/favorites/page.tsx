@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Heart, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { type Product } from "@/lib/mock-data";
+import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";

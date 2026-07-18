@@ -6,15 +6,24 @@ import { MapPin, Phone, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { communes, products } from "@/lib/mock-data";
+import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
+
+const communes = [
+  "Cocody",
+  "Marcory",
+  "Yopougon",
+  "Plateau",
+  "Treichville",
+  "Bingerville",
+] as const;
 
 /**
  * Port of lib/screens/checkout_screen.dart.
  * Two columns: shipping form + order summary.
  */
 export default function CheckoutPage() {
-  const items = products.slice(0, 2).map((p) => ({ ...p, quantity: 1 }));
+  const items: (Product & { quantity: number })[] = [];
   const total = items.reduce((acc, i) => acc + (i.price || 0) * i.quantity, 0);
   const delivery = 1500;
   const [commune, setCommune] = useState(communes[0]);

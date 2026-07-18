@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { Trash2, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { products } from "@/lib/mock-data";
+import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
 
 /**
@@ -13,9 +13,7 @@ import { formatXOF } from "@/lib/format";
  * Two-column desktop layout: items list on the left, summary panel on the right.
  */
 export default function CartPage() {
-  const [items, setItems] = useState(() =>
-    products.slice(0, 2).map((p) => ({ ...p, quantity: 1 }))
-  );
+  const [items, setItems] = useState<(Product & { quantity: number })[]>([]);
 
   const total = items.reduce((acc, i) => acc + (i.price || 0) * i.quantity, 0);
   const deliveryFee = items.length ? 1500 : 0;

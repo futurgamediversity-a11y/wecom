@@ -22,16 +22,20 @@ export default function FavoritesPage() {
   const [productsLoading, setProductsLoading] = useState(true);
 
   useEffect(() => {
+    console.log("FavoritesPage useEffect - user:", user?.uid, "favorites:", favorites);
     const fetchFavoriteProducts = async () => {
       if (!user || favorites.length === 0) {
+        console.log("No user or no favorites, clearing products");
         setProducts([]);
         setProductsLoading(false);
         return;
       }
 
       try {
+        console.log("Fetching favorite products...");
         const productsData: Product[] = [];
         for (const productId of favorites) {
+          console.log("Fetching product:", productId);
           const productDoc = await getDoc(doc(db, "products", productId));
           if (productDoc.exists()) {
             const data = productDoc.data();
@@ -52,6 +56,7 @@ export default function FavoritesPage() {
             });
           }
         }
+        console.log("Fetched favorite products:", productsData);
         setProducts(productsData);
       } catch (error) {
         console.error("Error fetching favorite products:", error);

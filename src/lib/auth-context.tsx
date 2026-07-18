@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc, Timestamp, onSnapshot } from "firebase/firestore";
 
 interface Favorite {
   productId: string;
@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let unsubscribeFavorites: (() => void) | null = null;
     
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+      console.log("Auth state changed:", currentUser?.uid);
       setUser(currentUser);
       
       if (currentUser) {
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const userDoc = await getDoc(doc(db, "users", currentUser.uid));
           if (!userDoc.exists()) {
+            console.log("Creating new user document for:", currentUser.uid);
             await setDoc(doc(db, "users", currentUser.uid), {
               displayName: currentUser.displayName,
               email: currentUser.email,
@@ -48,27 +50,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("Error with user document:", error);
         }
         
-        // Fetch user's favorites from "favorites" collection
-        const fetchFavorites = async () => {
-          try {
-            const q = query(collection(db, "favorites"), where("userId", "==", currentUser.uid));
-            const querySnapshot = await getDocs(q);
-            const favoriteProductIds = querySnapshot.docs.map(doc => doc.data().productId as string);
-            setFavorites(favoriteProductIds);
-          } catch (error) {
-            console.error("Error fetching favorites:", error);
-          }
-        };
-        
-        fetchFavorites();
+        // Set up real-time listener for user's favorites
+        console.log("Setting up favorites listener for user:", currentUser.uid);
+        const q = query(collection(db, "favorites"), where("userId", "==", currentUser.uid));
+        unsubscribeFavorites = onSnapshot(q, (querySnapshot) => {
+          const favoriteProductIds = querySnapshot.docs.map(doc => doc.data().productId as string);
+          console.log("Updated favorites:", favoriteProductIds);
+          setFavorites(favoriteProductIds);
+        }, (error) => {
+          console.error("Error listening to favorites:", error);
+        });
       } else {
+          console.log("User logged out, clearing favorites");
           setFavorites([]);
+          if (unsubscribeFavorites) {
+            unsubscribeFavorites();
+            unsubscribeFavorites = null;
+          }
         }
       
       setLoading(false);
     });
 
     return () => {
+      console.log("Cleaning up auth listeners");
       unsubscribeAuth();
       if (unsubscribeFavorites) unsubscribeFavorites();
     };
@@ -76,29 +81,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Toggle favorite product
   const toggleFavorite = async (productId: string) => {
-    if (!user) return;
+    if (!user) {
+      console.warn("Cannot toggle favorite: user not logged in");
+      return;
+    }
+    
+    console.log("Toggling favorite for product:", productId, "user:", user.uid);
     
     try {
       if (favorites.includes(productId)) {
         // Remove from favorites
+        console.log("Removing product from favorites");
         const q = query(
           collection(db, "favorites"),
           where("userId", "==", user.uid),
           where("productId", "==", productId)
         );
         const querySnapshot = await getDocs(q);
+        console.log("Found", querySnapshot.docs.length, "documents to delete");
         for (const doc of querySnapshot.docs) {
+          console.log("Deleting document:", doc.id);
           await deleteDoc(doc.ref);
         }
-        setFavorites(prev => prev.filter(id => id !== productId));
       } else {
         // Add to favorites
-        await addDoc(collection(db, "favorites"), {
+        console.log("Adding product to favorites");
+        const docRef = await addDoc(collection(db, "favorites"), {
           productId,
           userId: user.uid,
           timestamp: Timestamp.now()
         });
-        setFavorites(prev => [...prev, productId]);
+        console.log("Added favorite document:", docRef.id);
       }
     } catch (error) {
       console.error("Error toggling favorite:", error);

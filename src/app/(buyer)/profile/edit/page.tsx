@@ -44,6 +44,13 @@ export default function EditProfilePage() {
     fetchUserProfile();
   }, [user]);
 
+  // Redirect to login if no user
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    }
+  }, [authLoading, user, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -77,7 +84,6 @@ export default function EditProfilePage() {
   }
 
   if (!user) {
-    router.push("/login");
     return null;
   }
 

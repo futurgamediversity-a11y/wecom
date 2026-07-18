@@ -10,9 +10,13 @@ import {
   User,
   MapPin,
   ChevronDown,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { communes } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth-context";
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
 
 /**
  * Desktop-first top navigation.
@@ -22,6 +26,15 @@ import { communes } from "@/lib/mock-data";
 export function TopNav() {
   const [location, setLocation] = useState<string>("Cocody, Abidjan");
   const [open, setOpen] = useState(false);
+  const { user, loading } = useAuth();
+
+  async function handleSignOut() {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-200 bg-white/90 backdrop-blur">
@@ -89,37 +102,65 @@ export function TopNav() {
 
         {/* Quick actions */}
         <nav className="flex items-center gap-1 text-neutral-600">
-          <Link
-            href="/favorites"
-            className="rounded-sm p-2 hover:bg-neutral-100"
-            aria-label="Favoris"
-          >
-            <Heart className="h-5 w-5" />
-          </Link>
-          <Link
-            href="/notifications"
-            className="rounded-sm p-2 hover:bg-neutral-100"
-            aria-label="Notifications"
-          >
-            <Bell className="h-5 w-5" />
-          </Link>
-          <Link
-            href="/cart"
-            className="relative rounded-sm p-2 hover:bg-neutral-100"
-            aria-label="Panier"
-          >
-            <ShoppingBag className="h-5 w-5" />
-            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-wcom-orange px-1 text-[10px] font-bold text-white">
-              2
-            </span>
-          </Link>
-          <Link
-            href="/profile"
-            className="ml-2 inline-flex items-center gap-2 rounded-sm border border-neutral-200 px-3 py-1.5 text-sm hover:bg-neutral-50"
-          >
-            <User className="h-4 w-4" />
-            <span className="font-semibold">Mon compte</span>
-          </Link>
+          {user && (
+            <>
+              <Link
+                href="/favorites"
+                className="rounded-sm p-2 hover:bg-neutral-100"
+                aria-label="Favoris"
+              >
+                <Heart className="h-5 w-5" />
+              </Link>
+              <Link
+                href="/notifications"
+                className="rounded-sm p-2 hover:bg-neutral-100"
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5" />
+              </Link>
+              <Link
+                href="/cart"
+                className="relative rounded-sm p-2 hover:bg-neutral-100"
+                aria-label="Panier"
+              >
+                <ShoppingBag className="h-5 w-5" />
+                <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-wcom-orange px-1 text-[10px] font-bold text-white">
+                  2
+                </span>
+              </Link>
+              <Link
+                href="/profile"
+                className="ml-2 inline-flex items-center gap-2 rounded-sm border border-neutral-200 px-3 py-1.5 text-sm hover:bg-neutral-50"
+              >
+                <User className="h-4 w-4" />
+                <span className="font-semibold">
+                  {user.displayName || user.email?.split('@')[0] || "Mon compte"}
+                </span>
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="ml-1 inline-flex items-center gap-2 rounded-sm border border-neutral-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </>
+          )}
+          {!user && !loading && (
+            <div className="flex items-center gap-2">
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 rounded-sm px-3 py-1.5 text-sm font-semibold text-wcom-orange hover:bg-wcom-orange/5"
+              >
+                Se connecter
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-2 rounded-sm bg-wcom-orange px-4 py-1.5 text-sm font-semibold text-white hover:bg-wcom-orange/90"
+              >
+                Créer un compte
+              </Link>
+            </div>
+          )}
         </nav>
       </div>
 

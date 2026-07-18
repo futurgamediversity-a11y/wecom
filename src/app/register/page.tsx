@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 /**
  * Port of lib/screens/register_screen.dart — same visual register card
@@ -34,10 +35,17 @@ export default function RegisterPage() {
     try {
       // Create user with Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
       // Update profile with display name
-      if (userCredential.user) {
-        await updateProfile(userCredential.user, {
+      if (user) {
+        await updateProfile(user, {
           displayName: name
+        });
+        // Create user document in Firestore
+        await setDoc(doc(db, "users", user.uid), {
+          displayName: name,
+          email: email,
+          createdAt: new Date()
         });
       }
       

@@ -2,35 +2,42 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
 import { Trash2, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
+import { useAuth } from "@/lib/auth-context";
 
-/**
- * Port of lib/screens/cart_screen.dart.
- * Two-column desktop layout: items list on the left, summary panel on the right.
- */
 export default function CartPage() {
-  const [items, setItems] = useState<(Product & { quantity: number })[]>([]);
+  const { cartItems, removeFromCart, updateCartQty, user, loading } = useAuth();
 
-  const total = items.reduce((acc, i) => acc + (i.price || 0) * i.quantity, 0);
-  const deliveryFee = items.length ? 1500 : 0;
+  const total = cartItems.reduce((acc, i) => acc + i.price * i.quantity, 0);
+  const deliveryFee = cartItems.length ? 1500 : 0;
   const grandTotal = total + deliveryFee;
 
-  function changeQty(id: string, d: number) {
-    setItems((arr) =>
-      arr
-        .map((i) => (i.id === id ? { ...i, quantity: Math.max(0, i.quantity + d) } : i))
-        .filter((i) => i.quantity > 0)
+  if (loading) {
+    return (
+      <main className="mx-auto flex max-w-3xl flex-col items-center px-6 py-24 text-center">
+        <p className="text-neutral-500">Chargement...</p>
+      </main>
     );
   }
-  function removeItem(id: string) {
-    setItems((arr) => arr.filter((i) => i.id !== id));
+
+  if (!user) {
+    return (
+      <main className="mx-auto flex max-w-3xl flex-col items-center px-6 py-24 text-center">
+        <ShoppingBag className="h-14 w-14 text-neutral-300" />
+        <h1 className="mt-4 text-2xl font-black">Connectez-vous</h1>
+        <p className="mt-2 text-neutral-500">
+          Vous devez être connecté pour voir votre panier.
+        </p>
+        <Link href="/login" className="mt-6">
+          <Button variant="primary" size="md">Se connecter</Button>
+        </Link>
+      </main>
+    );
   }
 
-  if (items.length === 0) {
+  if (cartItems.length === 0) {
     return (
       <main className="mx-auto flex max-w-3xl flex-col items-center px-6 py-24 text-center">
         <ShoppingBag className="h-14 w-14 text-neutral-300" />
@@ -39,9 +46,7 @@ export default function CartPage() {
           Découvrez nos meilleures offres et commencez vos achats.
         </p>
         <Link href="/shop" className="mt-6">
-          <Button variant="primary" size="md">
-            Aller à la boutique
-          </Button>
+          <Button variant="primary" size="md">Aller à la boutique</Button>
         </Link>
       </main>
     );
@@ -54,15 +59,15 @@ export default function CartPage() {
       <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Items */}
         <ul className="space-y-4 lg:col-span-2">
-          {items.map((i) => (
+          {cartItems.map((item) => (
             <li
-              key={i.id}
+              key={item.id}
               className="flex gap-4 rounded-lg border border-neutral-200 bg-white p-4"
             >
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md bg-neutral-100">
                 <Image
-                  src={(i.images && i.images[0]) || "/images/app_icon.png"}
-                  alt={i.name || "Product"}
+                  src={item.imageUrl || "/images/app_icon.png"}
+                  alt={item.name}
                   fill
                   sizes="96px"
                   className="object-cover"
@@ -72,15 +77,22 @@ export default function CartPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <Link
-                      href={`/product/${i.id}`}
+                      href={`/product/${item.productId}`}
                       className="text-sm font-bold hover:text-wcom-orange"
                     >
-                      {i.name}
+                      {item.name}
                     </Link>
-                    <p className="text-xs text-neutral-500">{i.storeName}</p>
+                    {item.selectedVariants &&
+                      Object.keys(item.selectedVariants).length > 0 && (
+                        <p className="mt-0.5 text-xs text-neutral-400">
+                          {Object.entries(item.selectedVariants)
+                            .map(([k, v]) => `${k}: ${v}`)
+                            .join(" · ")}
+                        </p>
+                      )}
                   </div>
                   <button
-                    onClick={() => removeItem(i.id)}
+                    onClick={() => removeFromCart(item.id)}
                     className="rounded-full p-2 text-neutral-400 hover:bg-red-50 hover:text-red-500"
                     aria-label="Supprimer"
                   >
@@ -91,23 +103,25 @@ export default function CartPage() {
                 <div className="mt-auto flex items-center justify-between">
                   <div className="flex h-10 items-center rounded-sm border border-neutral-200 bg-white">
                     <button
-                      onClick={() => changeQty(i.id, -1)}
+                      onClick={() => updateCartQty(item.id, -1, item.quantity)}
                       className="px-3 text-base font-bold text-neutral-500 hover:text-wcom-orange"
+                      aria-label="Diminuer"
                     >
                       −
                     </button>
                     <span className="w-8 text-center text-sm font-bold">
-                      {i.quantity}
+                      {item.quantity}
                     </span>
                     <button
-                      onClick={() => changeQty(i.id, +1)}
+                      onClick={() => updateCartQty(item.id, +1, item.quantity)}
                       className="px-3 text-base font-bold text-neutral-500 hover:text-wcom-orange"
+                      aria-label="Augmenter"
                     >
                       +
                     </button>
                   </div>
                   <p className="text-base font-black text-wcom-orange">
-                    {formatXOF((i.price || 0) * i.quantity)}
+                    {formatXOF(item.price * item.quantity)}
                   </p>
                 </div>
               </div>

@@ -12,6 +12,7 @@ export type Product = {
   price?: number;
   currency?: "XOF";
   images?: string[];
+  imageUrl?: string;
   category?: string;
   storeId?: string;
   storeName?: string;
@@ -25,12 +26,17 @@ export type Product = {
 };
 
 export type CartItem = {
+  /** Firestore document ID */
   id: string;
   productId: string;
+  buyerId: string;
   name: string;
   price: number;
   quantity: number;
   imageUrl: string;
+  storeId: string;
+  selectedVariants?: Record<string, string>;
+  timestamp?: Date;
 };
 
 export type OrderStatus =
@@ -49,3 +55,16 @@ export type Order = {
   address: string;
   paymentMethod: string;
 };
+
+export type SellerProduct = {
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+  category: string;
+  storeId: string;
+  imageUrl: string;
+  imageUrls: string[];
+  status: "active" | "inactive";
+};
+

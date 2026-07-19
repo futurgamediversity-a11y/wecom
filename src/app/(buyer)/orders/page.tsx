@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { CheckCircle2, Clock, Truck, XCircle, PackageCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { type OrderStatus, type Order } from "@/lib/types";
+import { type OrderStatus } from "@/lib/types";
 import { formatXOF, formatDateFR } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
@@ -109,7 +109,7 @@ export default function OrdersPage() {
       try {
         const q = query(collection(db, "orders"), where("buyerId", "==", user.uid));
         const querySnapshot = await getDocs(q);
-        
+
         const ordersData: Order[] = querySnapshot.docs.map(doc => {
           const data = doc.data();
           const items: OrderItem[] = (data.items || []).map((item: any) => ({
@@ -118,22 +118,22 @@ export default function OrdersPage() {
             price: item.price,
             imageUrl: item.imageUrl
           }));
-          
+
           return {
             id: doc.id,
             status: (data.status as string) as OrderStatus,
             total: data.totalAmount,
             items,
-            address: data.deliveryInfo 
-              ? `${data.deliveryInfo.address}, ${data.deliveryInfo.common}` 
+            address: data.deliveryInfo
+              ? `${data.deliveryInfo.address}, ${data.deliveryInfo.common}`
               : "",
             paymentMethod: data.paymentMethod,
-            createdAt: data.timestamp instanceof Timestamp 
-              ? data.timestamp.toDate() 
+            createdAt: data.timestamp instanceof Timestamp
+              ? data.timestamp.toDate()
               : new Date()
           };
         });
-        
+
         setOrders(ordersData.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
       } catch (error) {
         console.error("Error fetching orders:", error);

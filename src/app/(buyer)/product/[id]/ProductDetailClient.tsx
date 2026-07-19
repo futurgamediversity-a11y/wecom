@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Store,
   ShoppingBag,
+  CheckCircle2,
 } from "lucide-react";
 import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
@@ -24,14 +25,30 @@ export default function ProductDetailClient({ id }: { id: string }) {
   const [product, setProduct] = useState<Product | null>(null);
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const { favorites, toggleFavorite, user } = useAuth();
+  const [qty, setQty] = useState(1);
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+  const [addedToCart, setAddedToCart] = useState(false);
+  const { favorites, toggleFavorite, user, addToCart } = useAuth();
   const isFavorite = product ? favorites.includes(product.id) : false;
-  
+
   const handleFavoriteClick = () => {
-    if (user && product) {
-      toggleFavorite(product.id);
-    }
+    if (user && product) toggleFavorite(product.id);
   };
+
+  const handleAddToCart = useCallback(async () => {
+    if (!product) return;
+    await addToCart({
+      productId: product.id,
+      name: product.name ?? "",
+      price: product.price ?? 0,
+      quantity: qty,
+      imageUrl: (product.images && product.images[0]) ?? (product.imageUrl ?? "/images/app_icon.png"),
+      storeId: product.storeId ?? "",
+      selectedVariants,
+    });
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2500);
+  }, [product, qty, selectedVariants, addToCart]);
 
   useEffect(() => {
     async function fetchProductData() {
@@ -200,34 +217,55 @@ export default function ProductDetailClient({ id }: { id: string }) {
             <div key={v.name} className="mt-6">
               <h3 className="text-sm font-bold">{v.name}</h3>
               <div className="mt-2 flex flex-wrap gap-2">
-                {v.options.map((opt, i) => (
-                  <button
-                    key={opt}
-                    className={`min-w-12 rounded-sm border px-3 py-2 text-sm font-semibold transition ${i === 0 ? "border-wcom-orange bg-wcom-orange/5 text-wcom-orange" : "border-neutral-200 hover:border-wcom-orange/40"}`}
-                  >
-                    {opt}
-                  </button>
-                ))}
+                {v.options.map((opt) => {
+                  const isSelected = selectedVariants[v.name] === opt;
+                  return (
+                    <button
+                      key={opt}
+                      onClick={() => setSelectedVariants(prev => ({ ...prev, [v.name]: opt }))}
+                      className={`min-w-12 rounded-sm border px-3 py-2 text-sm font-semibold transition ${
+                        isSelected
+                          ? "border-wcom-orange bg-wcom-orange/5 text-wcom-orange"
+                          : "border-neutral-200 hover:border-wcom-orange/40"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ))}
 
           <div className="mt-6 flex items-center gap-3">
             <div className="flex h-12 items-center rounded-sm border border-neutral-200 bg-white">
-              <button className="px-4 text-lg font-bold text-neutral-500 hover:text-wcom-orange">
+              <button
+                onClick={() => setQty(q => Math.max(1, q - 1))}
+                className="px-4 text-lg font-bold text-neutral-500 hover:text-wcom-orange"
+                aria-label="Diminuer la quantité"
+              >
                 −
               </button>
-              <span className="w-10 text-center font-bold">1</span>
-              <button className="px-4 text-lg font-bold text-neutral-500 hover:text-wcom-orange">
+              <span className="w-10 text-center font-bold">{qty}</span>
+              <button
+                onClick={() => setQty(q => q + 1)}
+                className="px-4 text-lg font-bold text-neutral-500 hover:text-wcom-orange"
+                aria-label="Augmenter la quantité"
+              >
                 +
               </button>
             </div>
-            <Link href="/cart" className="flex-1">
-              <Button variant="primary" size="lg" className="w-full gap-2">
-                <ShoppingBag className="h-4 w-4" />
-                Ajouter au panier
-              </Button>
-            </Link>
+            <button
+              onClick={handleAddToCart}
+              disabled={!user || addedToCart}
+              className="flex flex-1 items-center justify-center gap-2 rounded-sm bg-wcom-orange px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-amber-600 disabled:opacity-70"
+            >
+              {addedToCart ? (
+                <><CheckCircle2 className="h-4 w-4" /> Ajouté !</>
+              ) : (
+                <><ShoppingBag className="h-4 w-4" /> {user ? "Ajouter au panier" : "Connectez-vous d'abord"}</>
+              )}
+            </button>
           </div>
 
           {/* Trust strip */}

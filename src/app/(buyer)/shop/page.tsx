@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -41,7 +41,7 @@ const categories: Category[] = [
 
 const recentSearches = ["Sneakers", "AirPods", "Robe Wax", "Montres"];
 
-export default function ShopPage() {
+function ShopContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
@@ -205,6 +205,14 @@ export default function ShopPage() {
         )}
       </section>
     </main>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-7xl px-6 py-8">Chargement de la boutique...</div>}>
+      <ShopContent />
+    </Suspense>
   );
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -13,6 +13,7 @@ import {
   Star,
   ShoppingBag,
   Heart,
+  Search,
 } from "lucide-react";
 import { type Product, type Category } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
@@ -42,6 +43,8 @@ const recentSearches = ["Sneakers", "AirPods", "Robe Wax", "Montres"];
 
 export default function ShopPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   useEffect(() => {
     async function fetchProducts() {
@@ -74,16 +77,61 @@ export default function ShopPage() {
     
     fetchProducts();
   }, []);
+
+  const normalizeText = (value: unknown) =>
+    String(value ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+
+  const filteredProducts = useMemo(() => {
+    const normalizedSearch = normalizeText(searchTerm);
+    return products.filter((product) => {
+      const name = normalizeText(product.name);
+      const description = normalizeText(product.description);
+      const category = normalizeText(product.category);
+      const categoryMatches =
+        selectedCategory === "all" || category === normalizeText(selectedCategory);
+      const searchMatches =
+        !normalizedSearch ||
+        name.includes(normalizedSearch) ||
+        description.includes(normalizedSearch) ||
+        category.includes(normalizedSearch);
+      return categoryMatches && searchMatches;
+    });
+  }, [products, searchTerm, selectedCategory]);
+
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
 
       {/* Categories */}
       <section className="mt-8">
-        <h2 className="text-lg font-bold">Catégories</h2>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-bold">Catégories</h2>
+            <p className="text-sm text-neutral-500">Filtrez par catégorie ou recherchez un produit.</p>
+          </div>
+          <div className="relative max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Rechercher un produit..."
+              className="w-full rounded-sm border border-neutral-300 bg-white py-3 pl-10 pr-4 text-sm focus:border-wcom-green focus:outline-none focus:ring-2 focus:ring-wcom-green/20"
+            />
+          </div>
+        </div>
         <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-6">
           {categories.map((c) => {
             const Icon = ICONS[c.icon] ?? LayoutGrid;
+            const active = selectedCategory === c.id;
             const accent =
+              active
+                ? "border-wcom-green bg-wcom-green text-white"
+                : "border-neutral-200 bg-white text-neutral-700 hover:border-wcom-orange/40";
+            const iconAccent =
               c.accent === "orange"
                 ? "bg-wcom-orange text-white"
                 : c.accent === "green"
@@ -92,13 +140,11 @@ export default function ShopPage() {
             return (
               <button
                 key={c.id}
-                className="flex flex-col items-center gap-2 rounded-lg border border-neutral-200 bg-white p-4 transition hover:border-wcom-orange/40 hover:shadow-card"
+                type="button"
+                onClick={() => setSelectedCategory(c.id)}
+                className={`flex flex-col items-center gap-2 rounded-lg border p-4 transition ${accent}`}
               >
-                <span
-                  className={
-                    "grid h-12 w-12 place-items-center rounded-md " + accent
-                  }
-                >
+                <span className={`grid h-12 w-12 place-items-center rounded-md ${iconAccent}`}>
                   <Icon className="h-6 w-6" />
                 </span>
                 <span className="text-sm font-semibold">{c.name}</span>
@@ -127,18 +173,30 @@ export default function ShopPage() {
 
       {/* Product grid */}
       <section id="produits" className="mt-10">
-        <div className="flex items-end justify-between">
-          <h2 className="text-2xl font-black">Tendances en ce moment</h2>
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="text-2xl font-black">Tendances en ce moment</h2>
+            <p className="text-sm text-neutral-500">
+              {filteredProducts.length} produit(s) trouvé(s){selectedCategory !== "all" ? ` dans ${categories.find((c) => c.id === selectedCategory)?.name}` : ""}
+            </p>
+          </div>
           <Link href="#" className="text-sm font-semibold text-wcom-orange">
             Tout voir
           </Link>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
-          {products.map((p) => (
-            <ProductCard key={p.id} p={p} />
-          ))}
-        </div>
+        {filteredProducts.length === 0 ? (
+          <div className="mt-6 rounded-xl border border-dashed border-neutral-300 bg-white p-12 text-center">
+            <p className="font-bold text-neutral-700">Aucun produit trouvé</p>
+            <p className="mt-2 text-sm text-neutral-500">Essayez une autre recherche ou une autre catégorie.</p>
+          </div>
+        ) : (
+          <div className="mt-5 grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
+            {filteredProducts.map((p) => (
+              <ProductCard key={p.id} p={p} />
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );

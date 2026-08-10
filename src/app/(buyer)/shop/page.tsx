@@ -44,7 +44,7 @@ const recentSearches = ["Sneakers", "AirPods", "Robe Wax", "Montres"];
 export default function ShopPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+    const [selectedCategory, setSelectedCategory] = useState("Tout");
 
   useEffect(() => {
     async function fetchProducts() {
@@ -119,17 +119,16 @@ export default function ShopPage() {
               type="search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  // ensure latest value is applied and scroll to results
-                  const val = (e.target as HTMLInputElement).value;
-                  setSearchTerm(val);
-                  const results = document.getElementById("produits");
-                  if (results) results.scrollIntoView({ behavior: "smooth" });
-                  (e.target as HTMLInputElement).blur();
-                }
-              }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const val = (e.target as HTMLInputElement).value;
+                    setSearchTerm(val);
+                    const results = document.getElementById("produits");
+                    if (results) results.scrollIntoView({ behavior: "smooth" });
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
               placeholder="Rechercher un produit..."
               className="w-full rounded-sm border border-neutral-300 bg-white py-3 pl-10 pr-4 text-sm focus:border-wcom-green focus:outline-none focus:ring-2 focus:ring-wcom-green/20"
             />
@@ -138,7 +137,7 @@ export default function ShopPage() {
         <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-6">
           {categories.map((c) => {
             const Icon = ICONS[c.icon] ?? LayoutGrid;
-            const active = selectedCategory === c.id;
+            const active = selectedCategory === c.name;
             const accent =
               active
                 ? "border-wcom-green bg-wcom-green text-white"
@@ -153,7 +152,7 @@ export default function ShopPage() {
               <button
                 key={c.id}
                 type="button"
-                onClick={() => setSelectedCategory(c.id)}
+                onClick={() => setSelectedCategory(c.name)}
                 className={`flex flex-col items-center gap-2 rounded-lg border p-4 transition ${accent}`}
               >
                 <span className={`grid h-12 w-12 place-items-center rounded-md ${iconAccent}`}>
@@ -189,7 +188,7 @@ export default function ShopPage() {
           <div>
             <h2 className="text-2xl font-black">Tendances en ce moment</h2>
             <p className="text-sm text-neutral-500">
-              {filteredProducts.length} produit(s) trouvé(s){selectedCategory !== "all" ? ` dans ${categories.find((c) => c.id === selectedCategory)?.name}` : ""}
+              {filteredProducts.length} produit(s) trouvé(s){selectedCategory !== "Tout" ? ` dans ${selectedCategory}` : ""}
             </p>
           </div>
           <Link href="#" className="text-sm font-semibold text-wcom-orange">

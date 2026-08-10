@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Zap,
   LayoutGrid,
@@ -14,7 +14,6 @@ import {
   Star,
   ShoppingBag,
   Heart,
-  Search,
 } from "lucide-react";
 import { type Product, type Category } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
@@ -44,8 +43,9 @@ const recentSearches = ["Sneakers", "AirPods", "Robe Wax", "Montres"];
 
 export default function ShopPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
-  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+  const searchTerm = searchParams.get("search") || "";
   const [selectedCategory, setSelectedCategory] = useState("Tout");
 
   useEffect(() => {
@@ -80,13 +80,14 @@ export default function ShopPage() {
     fetchProducts();
   }, []);
 
-  // Update search term when URL search params change
-  useEffect(() => {
-    const searchParam = searchParams.get("search");
-    if (searchParam !== null) {
-      setSearchTerm(searchParam);
+  const handleSearchTermChange = (newSearchTerm: string) => {
+    // Update URL to sync with navbar search
+    if (newSearchTerm.trim()) {
+      router.push(`/shop?search=${encodeURIComponent(newSearchTerm.trim())}`);
+    } else {
+      router.push("/shop");
     }
-  }, [searchParams]);
+  };
 
   const normalizeText = (value: unknown) =>
     String(value ?? "")
@@ -123,27 +124,7 @@ export default function ShopPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-lg font-bold">Catégories</h2>
-            <p className="text-sm text-neutral-500">Filtrez par catégorie ou recherchez un produit.</p>
-          </div>
-          <div className="relative max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    const val = (e.target as HTMLInputElement).value;
-                    setSearchTerm(val);
-                    const results = document.getElementById("produits");
-                    if (results) results.scrollIntoView({ behavior: "smooth" });
-                    (e.target as HTMLInputElement).blur();
-                  }
-                }}
-              placeholder="Rechercher un produit..."
-              className="w-full rounded-sm border border-neutral-300 bg-white py-3 pl-10 pr-4 text-sm focus:border-wcom-green focus:outline-none focus:ring-2 focus:ring-wcom-green/20"
-            />
+            <p className="text-sm text-neutral-500">Filtrez par catégorie ou utilisez la barre de recherche pour trouver un produit.</p>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-6">
@@ -187,7 +168,7 @@ export default function ShopPage() {
             <button
               key={s}
               type="button"
-              onClick={() => setSearchTerm(s)}
+              onClick={() => handleSearchTermChange(s)}
               className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-semibold text-neutral-700 hover:border-wcom-orange/40"
             >
               {s}

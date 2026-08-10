@@ -71,7 +71,7 @@ async function uploadToCloudinary(file: File): Promise<string> {
 }
 
 export default function SellerDashboardPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [products, setProducts] = useState<SellerProduct[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -151,7 +151,10 @@ export default function SellerDashboardPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      setErrorMsg("Veuillez vous connecter pour publier un produit.");
+      return;
+    }
     if (imageFiles.length === 0) {
       setErrorMsg("Veuillez ajouter au moins une image.");
       return;
@@ -276,10 +279,15 @@ export default function SellerDashboardPage() {
             <h2 className="text-xl font-black">Mes produits</h2>
             <button
               onClick={() => {
+                if (!user) {
+                  setErrorMsg("Veuillez vous connecter pour publier un produit.");
+                  return;
+                }
                 setShowForm(true);
                 setErrorMsg("");
               }}
-              className="flex items-center gap-2 rounded-sm bg-wcom-green px-4 py-2 text-sm font-bold text-white shadow hover:bg-green-700"
+              disabled={!user || loading}
+              className="flex items-center gap-2 rounded-sm bg-wcom-green px-4 py-2 text-sm font-bold text-white shadow hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-neutral-300 disabled:text-neutral-500"
             >
               <Plus className="h-4 w-4" />
               Ajouter un produit

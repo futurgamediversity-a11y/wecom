@@ -156,15 +156,30 @@ export default function SellerDashboardPage() {
 
   const FILTER_CATEGORIES = ["Toutes", ...CATEGORIES];
 
+  const normalizeText = (value: string) =>
+    String(value)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+
   const filteredProducts = products.filter((product) => {
-    const searchValue = searchTerm.trim().toLowerCase();
+    const searchValue = normalizeText(searchTerm);
+    const productName = normalizeText(product.name);
+    const productDescription = normalizeText(product.description);
+    const productCategory = normalizeText(product.category);
+    const selectedCategoryNormalized = normalizeText(selectedCategory);
+
     const matchesSearch =
       !searchValue ||
-      product.name.toLowerCase().includes(searchValue) ||
-      product.description.toLowerCase().includes(searchValue) ||
-      product.category.toLowerCase().includes(searchValue);
+      productName.includes(searchValue) ||
+      productDescription.includes(searchValue) ||
+      productCategory.includes(searchValue);
+
     const matchesCategory =
-      selectedCategory === "Toutes" || product.category === selectedCategory;
+      selectedCategoryNormalized === "toutes" ||
+      productCategory === selectedCategoryNormalized;
+
     return matchesSearch && matchesCategory;
   });
 
@@ -323,7 +338,7 @@ export default function SellerDashboardPage() {
               Ajouter un produit
             </button>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             {FILTER_CATEGORIES.map((cat) => (
               <button
                 key={cat}
@@ -338,6 +353,9 @@ export default function SellerDashboardPage() {
                 {cat}
               </button>
             ))}
+            <span className="ml-auto text-sm text-neutral-500">
+              {filteredProducts.length} résultat(s)
+            </span>
           </div>
 
           {filteredProducts.length === 0 ? (

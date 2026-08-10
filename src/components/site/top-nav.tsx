@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   Search,
   ShoppingBag,
@@ -34,6 +35,10 @@ const communes = [
 export function TopNav() {
   const [location, setLocation] = useState<string>("Cocody, Abidjan");
   const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, loading } = useAuth();
 
   async function handleSignOut() {
@@ -43,6 +48,27 @@ export function TopNav() {
       console.error("Sign out error:", error);
     }
   }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      router.push(`/shop?search=${encodeURIComponent(searchTerm.trim())}`);
+    }
+  };
+
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  // Sync search input with URL search parameter when on shop page
+  useEffect(() => {
+    if (pathname === "/shop") {
+      const searchParam = searchParams.get("search");
+      setSearchTerm(searchParam || "");
+    } else {
+      setSearchTerm("");
+    }
+  }, [pathname, searchParams]);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-200 bg-white/90 backdrop-blur">
@@ -99,14 +125,16 @@ export function TopNav() {
         </div>
 
         {/* Search */}
-        <div className="relative flex-1 max-w-2xl">
+        <form onSubmit={handleSearch} className="relative flex-1 max-w-2xl">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
           <input
             type="search"
+            value={searchTerm}
+            onChange={handleSearchInputChange}
             placeholder="Rechercher un produit, une boutique…"
             className="h-10 w-full rounded-sm border border-neutral-200 bg-neutral-50 pl-10 pr-3 text-sm placeholder:text-neutral-400 focus:border-wcom-orange focus:bg-white focus:outline-none focus:ring-2 focus:ring-wcom-orange/20"
           />
-        </div>
+        </form>
 
         {/* Quick actions */}
         <nav className="flex items-center gap-1 text-neutral-600">

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   Zap,
   LayoutGrid,
@@ -42,9 +43,10 @@ const categories: Category[] = [
 const recentSearches = ["Sneakers", "AirPods", "Robe Wax", "Montres"];
 
 export default function ShopPage() {
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("Tout");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+  const [selectedCategory, setSelectedCategory] = useState("Tout");
 
   useEffect(() => {
     async function fetchProducts() {
@@ -78,6 +80,14 @@ export default function ShopPage() {
     fetchProducts();
   }, []);
 
+  // Update search term when URL search params change
+  useEffect(() => {
+    const searchParam = searchParams.get("search");
+    if (searchParam !== null) {
+      setSearchTerm(searchParam);
+    }
+  }, [searchParams]);
+
   const normalizeText = (value: unknown) =>
     String(value ?? "")
       .normalize("NFD")
@@ -93,7 +103,9 @@ export default function ShopPage() {
       const category = normalizeText(product.category);
       const selectedCategoryNormalized = normalizeText(selectedCategory);
       const categoryMatches =
-        selectedCategoryNormalized === "all" || category === selectedCategoryNormalized;
+        selectedCategoryNormalized === "all" ||
+        selectedCategoryNormalized === "tout" ||
+        category === selectedCategoryNormalized;
       const searchMatches =
         !normalizedSearch ||
         name.includes(normalizedSearch) ||
@@ -172,12 +184,14 @@ export default function ShopPage() {
         </h3>
         <div className="mt-3 flex flex-wrap gap-2">
           {recentSearches.map((s) => (
-            <span
+            <button
               key={s}
+              type="button"
+              onClick={() => setSearchTerm(s)}
               className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-semibold text-neutral-700 hover:border-wcom-orange/40"
             >
               {s}
-            </span>
+            </button>
           ))}
         </div>
       </section>

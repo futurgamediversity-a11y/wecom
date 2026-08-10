@@ -13,6 +13,7 @@ import {
   LogOut,
   CheckCircle2,
   AlertCircle,
+  Search,
 } from "lucide-react";
 import { WComLogo } from "@/components/brand/wcom-logo";
 import { useAuth } from "@/lib/auth-context";
@@ -41,6 +42,7 @@ const CATEGORIES = [
 interface SellerProduct {
   id: string;
   name: string;
+  description: string;
   price: number;
   quantity: number;
   category: string;
@@ -84,6 +86,8 @@ export default function SellerDashboardPage() {
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [category, setCategory] = useState(CATEGORIES[0]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Toutes");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -107,6 +111,7 @@ export default function SellerDashboardPage() {
           return {
             id: d.id,
             name: data.name ?? "",
+            description: data.description ?? "",
             price: data.price ?? 0,
             quantity: data.quantity ?? 0,
             category: data.category ?? "",
@@ -148,6 +153,20 @@ export default function SellerDashboardPage() {
     setImageFiles([]);
     setImagePreviews([]);
   }
+
+  const FILTER_CATEGORIES = ["Toutes", ...CATEGORIES];
+
+  const filteredProducts = products.filter((product) => {
+    const searchValue = searchTerm.trim().toLowerCase();
+    const matchesSearch =
+      !searchValue ||
+      product.name.toLowerCase().includes(searchValue) ||
+      product.description.toLowerCase().includes(searchValue) ||
+      product.category.toLowerCase().includes(searchValue);
+    const matchesCategory =
+      selectedCategory === "Toutes" || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -275,8 +294,19 @@ export default function SellerDashboardPage() {
 
         {/* Products section */}
         <div className="mt-10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black">Mes produits</h2>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex-1 min-w-0">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Rechercher un produit..."
+                  className="w-full rounded-sm border border-neutral-300 bg-white py-3 pl-10 pr-4 text-sm focus:border-wcom-green focus:outline-none focus:ring-2 focus:ring-wcom-green/20"
+                />
+              </div>
+            </div>
             <button
               onClick={() => {
                 if (!user) {
@@ -293,20 +323,36 @@ export default function SellerDashboardPage() {
               Ajouter un produit
             </button>
           </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {FILTER_CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={`rounded-full border px-3 py-1 text-sm font-semibold transition ${
+                  selectedCategory === cat
+                    ? "border-wcom-green bg-wcom-green text-white"
+                    : "border-neutral-300 bg-white text-neutral-600 hover:border-wcom-green hover:text-wcom-green"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
 
-          {products.length === 0 ? (
+          {filteredProducts.length === 0 ? (
             <div className="mt-6 rounded-xl border border-dashed border-neutral-300 bg-white p-12 text-center">
               <Package className="mx-auto h-12 w-12 text-neutral-300" />
               <p className="mt-3 font-bold text-neutral-600">
-                Aucun produit pour l&apos;instant
+                Aucun produit trouvé
               </p>
               <p className="mt-1 text-sm text-neutral-400">
-                Ajoutez votre premier produit pour commencer à vendre.
+                Essayez une autre catégorie ou un autre mot-clé.
               </p>
             </div>
           ) : (
             <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {products.map((p) => (
+              {filteredProducts.map((p) => (
                 <div
                   key={p.id}
                   className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm"

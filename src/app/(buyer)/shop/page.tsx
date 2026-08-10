@@ -77,32 +77,6 @@ export default function ShopPage() {
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
 
-      {/* Hero strip */}
-      <section className="overflow-hidden rounded-xl bg-gradient-to-br from-wcom-orange to-amber-500 p-8 text-white">
-        <div className="flex items-center gap-6">
-          <div className="flex-1">
-            <p className="text-sm font-semibold uppercase tracking-wider opacity-90">
-              Ventes Flash · Abidjan
-            </p>
-            <h1 className="mt-2 text-3xl font-black md:text-4xl">
-              Jusqu&apos;à -40% sur la Mode et l&apos;Électronique
-            </h1>
-            <p className="mt-2 max-w-xl text-white/90">
-              Livraison en moins de 24h dans toutes les communes d&apos;Abidjan.
-            </p>
-            <Link
-              href="#produits"
-              className="mt-5 inline-flex items-center gap-2 rounded-sm bg-white px-4 py-2 text-sm font-bold text-wcom-orange shadow"
-            >
-              Voir les offres <ShoppingBag className="h-4 w-4" />
-            </Link>
-          </div>
-          <div className="hidden h-32 w-32 shrink-0 md:block">
-            <Zap className="h-full w-full text-white/60" />
-          </div>
-        </div>
-      </section>
-
       {/* Categories */}
       <section className="mt-8">
         <h2 className="text-lg font-bold">Catégories</h2>

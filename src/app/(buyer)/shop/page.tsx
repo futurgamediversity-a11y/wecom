@@ -91,8 +91,9 @@ export default function ShopPage() {
       const name = normalizeText(product.name);
       const description = normalizeText(product.description);
       const category = normalizeText(product.category);
+      const selectedCategoryNormalized = normalizeText(selectedCategory);
       const categoryMatches =
-        selectedCategory === "all" || category === normalizeText(selectedCategory);
+        selectedCategoryNormalized === "all" || category === selectedCategoryNormalized;
       const searchMatches =
         !normalizedSearch ||
         name.includes(normalizedSearch) ||
@@ -118,6 +119,17 @@ export default function ShopPage() {
               type="search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  // ensure latest value is applied and scroll to results
+                  const val = (e.target as HTMLInputElement).value;
+                  setSearchTerm(val);
+                  const results = document.getElementById("produits");
+                  if (results) results.scrollIntoView({ behavior: "smooth" });
+                  (e.target as HTMLInputElement).blur();
+                }
+              }}
               placeholder="Rechercher un produit..."
               className="w-full rounded-sm border border-neutral-300 bg-white py-3 pl-10 pr-4 text-sm focus:border-wcom-green focus:outline-none focus:ring-2 focus:ring-wcom-green/20"
             />

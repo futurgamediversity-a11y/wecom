@@ -28,6 +28,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
   const [qty, setQty] = useState(1);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [addedToCart, setAddedToCart] = useState(false);
+  const [storeData, setStoreData] = useState<{ name: string; image: string } | null>(null);
   const { favorites, toggleFavorite, user, addToCart } = useAuth();
   const isFavorite = product ? favorites.includes(product.id) : false;
 
@@ -72,6 +73,23 @@ export default function ProductDetailClient({ id }: { id: string }) {
             stock: data.quantity || 0,
             status: data.status
           } as Product);
+
+          // Fetch store data if storeId exists
+          if (data.storeId) {
+            try {
+              const storeRef = doc(db, "stores", data.storeId);
+              const storeSnap = await getDoc(storeRef);
+              if (storeSnap.exists()) {
+                const storeData = storeSnap.data();
+                setStoreData({
+                  name: storeData.name || "Boutique",
+                  image: storeData.logo || storeData.image || "/images/app_icon.png"
+                });
+              }
+            } catch (storeError) {
+              console.error("Error fetching store data:", storeError);
+            }
+          }
         }
 
         const querySnapshot = await getDocs(collection(db, "products"));
@@ -289,20 +307,24 @@ export default function ProductDetailClient({ id }: { id: string }) {
           {/* Store */}
           <Link
             href={`/store/${p.storeId || ""}`}
-            className="mt-5 flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4 hover:border-wcom-orange/40"
+            className="mt-5 flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4 hover:border-wcom-orange/40 transition"
           >
-            <div className="grid h-10 w-10 place-items-center rounded-sm bg-wcom-green/10 text-wcom-green">
-              <Store className="h-5 w-5" />
+            <div className="relative h-12 w-12 overflow-hidden rounded-md bg-neutral-100">
+              <Image
+                src={storeData?.image || "/images/app_icon.png"}
+                alt={storeData?.name || "Boutique"}
+                fill
+                sizes="48px"
+                className="object-cover"
+              />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-bold">{p.storeName || "Boutique"}</p>
-              <p className="text-xs text-neutral-500">Voir la boutique</p>
+              <p className="text-sm font-bold text-neutral-900">{storeData?.name || p.storeName || "Boutique"}</p>
+              <p className="text-xs text-neutral-500">Visiter la boutique</p>
             </div>
-            {p.storePlan === "premium" || p.storePlan === "enterprise" ? (
-              <span className="rounded-sm bg-amber-500/15 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-amber-700">
-                {p.storePlan}
-              </span>
-            ) : null}
+            <div className="grid h-8 w-8 place-items-center rounded-full bg-wcom-green/10 text-wcom-green">
+              <Store className="h-4 w-4" />
+            </div>
           </Link>
         </section>
       </div>

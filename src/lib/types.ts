@@ -15,6 +15,7 @@ export type Product = {
   imageUrl?: string;
   category?: string;
   storeId?: string;
+  sellerId?: string;
   storeName?: string;
   storePlan?: "free" | "premium" | "enterprise";
   rating?: number;

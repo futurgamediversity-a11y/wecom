@@ -67,6 +67,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
             images: data.imageUrls || [data.imageUrl],
             category: data.category,
             storeId: data.storeId,
+            sellerId: data.sellerId,
             storeName: "Boutique",
             rating: 0,
             reviewCount: 0,
@@ -75,19 +76,41 @@ export default function ProductDetailClient({ id }: { id: string }) {
           } as Product);
 
           // Fetch store data if storeId exists
-          if (data.storeId) {
+          const sellerId = data.storeId || data.sellerId;
+          if (sellerId) {
             try {
-              const storeRef = doc(db, "stores", data.storeId);
-              const storeSnap = await getDoc(storeRef);
-              if (storeSnap.exists()) {
-                const storeData = storeSnap.data();
+              console.log("Fetching store data for sellerId:", sellerId);
+              // Try users collection first (since storeId is actually the user's uid)
+              const userRef = doc(db, "users", sellerId);
+              const userSnap = await getDoc(userRef);
+              console.log("User snapshot exists:", userSnap.exists());
+              if (userSnap.exists()) {
+                const userData = userSnap.data();
+                console.log("User data:", userData);
                 setStoreData({
-                  name: storeData.name || "Boutique",
-                  image: storeData.logo || storeData.image || "/images/app_icon.png"
+                  name: userData.displayName || userData.storeName || "Boutique",
+                  image: userData.photoURL || userData.logo || userData.storeImage || "/images/app_icon.png"
                 });
+              } else {
+                console.log("User document not found, trying stores collection");
+                // Try stores collection as fallback
+                try {
+                  const storeRef = doc(db, "stores", sellerId);
+                  const storeSnap = await getDoc(storeRef);
+                  if (storeSnap.exists()) {
+                    const storeData = storeSnap.data();
+                    console.log("Store data:", storeData);
+                    setStoreData({
+                      name: storeData.name || storeData.storeName || "Boutique",
+                      image: storeData.logo || storeData.image || storeData.storeImage || "/images/app_icon.png"
+                    });
+                  }
+                } catch (storeError) {
+                  console.error("Error fetching store data:", storeError);
+                }
               }
-            } catch (storeError) {
-              console.error("Error fetching store data:", storeError);
+            } catch (userError) {
+              console.error("Error fetching user data:", userError);
             }
           }
         }

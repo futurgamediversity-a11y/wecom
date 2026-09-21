@@ -3,24 +3,27 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getAuth, type Auth } from 'firebase/auth';
 
-// Each value must be read as a complete `process.env.NEXT_PUBLIC_*` expression
-// so Next.js can inline it into the client bundle at build time.
+// Each value must be read as a complete `process.env.FIREBASE_*` expression
+// so Next.js can inline it into the client bundle at build time. These names
+// have no NEXT_PUBLIC_ prefix, so `env` in next.config.ts is what exposes
+// them to the browser.
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  // Only Firebase Storage needs a bucket and nothing uses it yet, so this
+  // one stays optional rather than blocking auth and Firestore.
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || undefined,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
 };
 
-const envVarNames: Record<keyof typeof firebaseConfig, string> = {
-  apiKey: 'NEXT_PUBLIC_FIREBASE_API_KEY',
-  authDomain: 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  projectId: 'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-  storageBucket: 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  messagingSenderId: 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  appId: 'NEXT_PUBLIC_FIREBASE_APP_ID',
+const requiredVars: Partial<Record<keyof typeof firebaseConfig, string>> = {
+  apiKey: 'FIREBASE_API_KEY',
+  authDomain: 'FIREBASE_AUTH_DOMAIN',
+  projectId: 'FIREBASE_PROJECT_ID',
+  messagingSenderId: 'FIREBASE_MESSAGING_SENDER_ID',
+  appId: 'FIREBASE_APP_ID',
 };
 
 let appInstance: FirebaseApp | null = null;
@@ -28,15 +31,15 @@ let appInstance: FirebaseApp | null = null;
 function resolveApp(): FirebaseApp {
   if (appInstance) return appInstance;
 
-  const missing = (Object.keys(envVarNames) as (keyof typeof firebaseConfig)[])
+  const missing = (Object.keys(requiredVars) as (keyof typeof firebaseConfig)[])
     .filter((key) => !firebaseConfig[key])
-    .map((key) => envVarNames[key]);
+    .map((key) => requiredVars[key]);
 
   if (missing.length > 0) {
     throw new Error(
       `Firebase is not configured: missing ${missing.join(', ')}. ` +
-        'Set these variables in your hosting provider and in .env.local, then rebuild — ' +
-        'NEXT_PUBLIC_* values are inlined at build time, not read at runtime.'
+        'Set these variables in your hosting provider and in .env.local, then redeploy — ' +
+        'they are inlined into the browser bundle at build time, not read at runtime.'
     );
   }
 

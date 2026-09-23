@@ -16,6 +16,36 @@ export type StoreLookup = {
 
 const FALLBACK_IMAGE = "/images/app_icon.png";
 
+/**
+ * Firestore values reach the UI unchecked, and rendering a non-string as a
+ * React child throws (error #31 — "Objects are not valid as a React child").
+ * stores/{id}.location is a GeoPoint, which crashed the store page, so every
+ * displayed field is narrowed to a non-empty string here.
+ */
+function asText(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+}
+
+function firstText(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    const text = asText(value);
+    if (text) return text;
+  }
+  return undefined;
+}
+
+/**
+ * A readable place for the store. `location` holds GeoPoint coordinates and
+ * is never displayable; the app writes the human-readable place as `commune`
+ * and `ville`. A plain-string `location` is still accepted, since older
+ * documents may carry one.
+ */
+function placeOf(data: Record<string, unknown>): string | undefined {
+  const parts = [asText(data.commune), asText(data.ville)].filter(Boolean);
+  if (parts.length > 0) return parts.join(", ");
+  return asText(data.location);
+}
+
 async function readDoc(path: "stores" | "users", id: string) {
   try {
     const snap = await getDoc(doc(db, path, id));
@@ -40,38 +70,50 @@ async function readDoc(path: "stores" | "users", id: string) {
  * auth on users — skipped the stores lookup entirely and reported the store
  * as missing.
  */
+export function toStoreProfile(
+  data: Record<string, unknown>,
+  source: "stores" | "users"
+): StoreProfile {
+  if (source === "stores") {
+    return {
+      name: firstText(data.storeName, data.name) ?? "Boutique",
+      // profileImageUrl is the field the app actually writes; the older
+      // logo/image/storeImage names never matched a real document, so every
+      // storefront fell back to the placeholder icon.
+      image:
+        firstText(data.profileImageUrl, data.logo, data.image, data.storeImage) ??
+        FALLBACK_IMAGE,
+      description: firstText(data.description, data.slogan),
+      location: placeOf(data),
+    };
+  }
+  return {
+    name: firstText(data.displayName, data.storeName) ?? "Boutique",
+    image:
+      firstText(data.photoURL, data.profileImageUrl, data.logo, data.storeImage) ??
+      FALLBACK_IMAGE,
+    description: firstText(data.description, data.bio),
+    location: placeOf(data),
+  };
+}
+
 export async function fetchStoreProfile(storeId: string): Promise<StoreLookup> {
   if (!storeId) return { profile: null, failed: false };
 
   const store = await readDoc("stores", storeId);
   if (store.data) {
-    const d = store.data;
-    return {
-      profile: {
-        name: d.name || d.storeName || "Boutique",
-        image: d.logo || d.image || d.storeImage || FALLBACK_IMAGE,
-        description: d.description,
-        location: d.location,
-      },
-      failed: false,
-    };
+    return { profile: toStoreProfile(store.data, "stores"), failed: false };
   }
 
   const user = await readDoc("users", storeId);
   if (user.data) {
-    const d = user.data;
-    return {
-      profile: {
-        name: d.displayName || d.storeName || "Boutique",
-        image: d.photoURL || d.logo || d.storeImage || FALLBACK_IMAGE,
-        description: d.description || d.bio,
-        location: d.location,
-      },
-      failed: false,
-    };
+    return { profile: toStoreProfile(user.data, "users"), failed: false };
   }
 
-  return { profile: null, failed: store.failed || user.failed };
+  // Only the authoritative stores read decides "failed". The users fallback
+  // is legacy and is denied outright for signed-out visitors, so counting it
+  // would report every genuinely deleted store as a load error.
+  return { profile: null, failed: store.failed };
 }
 
 /**
@@ -95,7 +137,7 @@ export async function fetchStoreNames(storeIds: string[]): Promise<Map<string, s
       );
       snap.docs.forEach((d) => {
         const data = d.data();
-        names.set(d.id, data.name || data.storeName || "Boutique");
+        names.set(d.id, firstText(data.storeName, data.name) ?? "Boutique");
       });
     } catch (error) {
       console.error("Error reading store names:", error);

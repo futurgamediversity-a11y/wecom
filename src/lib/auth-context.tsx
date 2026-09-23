@@ -189,6 +189,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Google sign in error:", error);
+      // Rethrow: swallowing this left callers unable to tell a failed
+      // sign-in from a successful one, so the login page redirected to
+      // /role while the visitor was still signed out.
+      throw error;
     }
   };
 

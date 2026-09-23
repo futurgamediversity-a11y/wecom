@@ -28,6 +28,7 @@ function StoreContent({ storeId }: { storeId: string }) {
   } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const router = useRouter();
   const { favorites, toggleFavorite, user } = useAuth();
 
@@ -75,6 +76,7 @@ function StoreContent({ storeId }: { storeId: string }) {
       }
     } catch (error) {
       console.error("Error fetching store data:", error);
+      setLoadError(true);
     }
   };
 
@@ -110,6 +112,7 @@ function StoreContent({ storeId }: { storeId: string }) {
       setProducts(fetchedProducts);
     } catch (error) {
       console.error("Error fetching store products:", error);
+      setLoadError(true);
     }
   };
 
@@ -124,7 +127,27 @@ function StoreContent({ storeId }: { storeId: string }) {
     );
   }
 
-  if (!storeData) {
+  // A read that FAILED and a store that does not exist are different
+  // problems. Both used to render "Boutique non trouvée", which hid
+  // permission errors behind a plausible-looking empty state.
+  if (!storeData && loadError) {
+    return (
+      <main className="mx-auto max-w-7xl px-6 py-8">
+        <div className="flex items-center gap-2 text-neutral-500">
+          <ArrowLeft className="h-5 w-5 cursor-pointer" onClick={() => router.back()} />
+          <span>Impossible de charger la boutique.</span>
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 rounded-sm border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold hover:border-wcom-orange/40"
+        >
+          Réessayer
+        </button>
+      </main>
+    );
+  }
+
+  if (!storeData && products.length === 0) {
     return (
       <main className="mx-auto max-w-7xl px-6 py-8">
         <div className="flex items-center gap-2 text-neutral-500">
@@ -134,6 +157,10 @@ function StoreContent({ storeId }: { storeId: string }) {
       </main>
     );
   }
+
+  // The profile document may be unreadable while the catalogue is not, so
+  // keep the products browsable rather than blanking the whole page.
+  const store = storeData ?? { name: "Boutique", image: "/images/app_icon.png" };
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
@@ -152,8 +179,8 @@ function StoreContent({ storeId }: { storeId: string }) {
           {/* Store Image */}
           <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-100 md:h-32 md:w-32">
             <Image
-              src={storeData.image}
-              alt={storeData.name}
+              src={store.image}
+              alt={store.name}
               fill
               sizes="(max-width: 768px) 96px, 128px"
               className="object-cover"
@@ -165,12 +192,12 @@ function StoreContent({ storeId }: { storeId: string }) {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-black text-neutral-900 md:text-3xl">
-                  {storeData.name}
+                  {store.name}
                 </h1>
-                {storeData.location && (
+                {store.location && (
                   <div className="mt-2 flex items-center gap-2 text-sm text-neutral-500">
                     <MapPin className="h-4 w-4" />
-                    <span>{storeData.location}</span>
+                    <span>{store.location}</span>
                   </div>
                 )}
               </div>
@@ -183,9 +210,9 @@ function StoreContent({ storeId }: { storeId: string }) {
               </div>
             </div>
 
-            {storeData.description && (
+            {store.description && (
               <p className="mt-3 text-sm text-neutral-600 leading-relaxed">
-                {storeData.description}
+                {store.description}
               </p>
             )}
 

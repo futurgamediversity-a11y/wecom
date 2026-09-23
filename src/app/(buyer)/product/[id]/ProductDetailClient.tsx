@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
+import { toProduct } from "@/lib/firestore-schema";
 import { fetchStoreProfile } from "@/lib/store";
 
 export default function ProductDetailClient({ id }: { id: string }) {
@@ -60,22 +61,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setProduct({
-            id: docSnap.id,
-            name: data.name,
-            description: data.description,
-            price: data.price,
-            currency: "XOF",
-            images: data.imageUrls || [data.imageUrl],
-            category: data.category,
-            storeId: data.storeId,
-            sellerId: data.sellerId,
-            storeName: "Boutique",
-            rating: 0,
-            reviewCount: 0,
-            stock: data.quantity || 0,
-            status: data.status
-          } as Product);
+          setProduct(toProduct(docSnap.id, data));
 
           // storeId is a stores/{id} document id; fetchStoreProfile reads
           // that collection first and falls back to users/{id} for older
@@ -90,21 +76,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
         const querySnapshot = await getDocs(collection(db, "products"));
         const fetched = querySnapshot.docs.map(doc => {
           const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name,
-            description: data.description,
-            price: data.price,
-            currency: "XOF",
-            images: data.imageUrls || [data.imageUrl],
-            category: data.category,
-            storeId: data.storeId,
-            storeName: "Boutique",
-            rating: 0,
-            reviewCount: 0,
-            stock: data.quantity || 0,
-            status: data.status
-          } as Product;
+          return toProduct(doc.id, data);
         });
         if (fetched.length > 0) {
           setSuggestions(fetched.filter(p => p.id !== id).slice(0, 4));

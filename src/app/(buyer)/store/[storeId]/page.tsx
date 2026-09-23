@@ -18,15 +18,11 @@ import { formatXOF } from "@/lib/format";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
-import { fetchStoreProfile } from "@/lib/store";
+import { toProduct, STORE_FALLBACK_IMAGE } from "@/lib/firestore-schema";
+import { fetchStoreProfile, type StoreProfile } from "@/lib/store";
 
 function StoreContent({ storeId }: { storeId: string }) {
-  const [storeData, setStoreData] = useState<{
-    name: string;
-    image: string;
-    description?: string;
-    location?: string;
-  } | null>(null);
+  const [storeData, setStoreData] = useState<StoreProfile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -61,22 +57,7 @@ function StoreContent({ storeId }: { storeId: string }) {
       const querySnapshot = await getDocs(q);
       const fetchedProducts = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        return {
-          id: doc.id,
-          name: data.name,
-          description: data.description,
-          price: data.price,
-          currency: "XOF",
-          images: data.imageUrls || [data.imageUrl],
-          category: data.category,
-          storeId: data.storeId,
-          sellerId: data.sellerId,
-          storeName: "Boutique",
-          rating: 0,
-          reviewCount: 0,
-          stock: data.quantity || 0,
-          status: data.status
-        } as Product;
+        return toProduct(doc.id, data);
       });
       
       console.log("Found products:", fetchedProducts.length);
@@ -131,7 +112,8 @@ function StoreContent({ storeId }: { storeId: string }) {
 
   // The profile document may be unreadable while the catalogue is not, so
   // keep the products browsable rather than blanking the whole page.
-  const store = storeData ?? { name: "Boutique", image: "/images/app_icon.png" };
+  const store: StoreProfile =
+    storeData ?? { name: "Boutique", image: STORE_FALLBACK_IMAGE };
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
@@ -173,11 +155,17 @@ function StoreContent({ storeId }: { storeId: string }) {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-sm">
-                  <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-                  <span className="font-bold">4.5</span>
-                  <span className="text-neutral-500">(12 avis)</span>
-                </div>
+                {/* stores/{id} carries averageRating and reviewCount; the
+                    header used to show a hardcoded 4.5 (12 avis). */}
+                {store.rating !== undefined && (
+                  <div className="flex items-center gap-1 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-sm">
+                    <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
+                    <span className="font-bold">{store.rating.toFixed(1)}</span>
+                    <span className="text-neutral-500">
+                      ({store.reviewCount ?? 0} avis)
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

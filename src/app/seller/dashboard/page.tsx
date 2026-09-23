@@ -18,6 +18,7 @@ import {
 import { WComLogo } from "@/components/brand/wcom-logo";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
+import { findStoreIdByOwner } from "@/lib/store";
 import {
   collection,
   addDoc,
@@ -92,17 +93,34 @@ export default function SellerDashboardPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Derive storeId from user's uid (or pull from Firestore user doc if available)
-  const storeId = user?.uid ?? "";
+  // A store's document id is an auto-id, NOT the owner's uid: stores/{id}
+  // carries the seller as `ownerId`. Deriving storeId from user.uid listed
+  // products under an id no product uses, and wrote new ones with a storeId
+  // that `isStoreOwner` could not resolve, so every save was denied.
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [storeLookupDone, setStoreLookupDone] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    findStoreIdByOwner(user.uid).then((id) => {
+      if (!active) return;
+      setStoreId(id);
+      setStoreLookupDone(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   // Load seller products
   useEffect(() => {
-    if (!user) return;
+    if (!user || !storeId) return;
     const fetchProducts = async () => {
       try {
         const q = query(
           collection(db, "products"),
-          where("storeId", "==", user.uid),
+          where("storeId", "==", storeId),
           orderBy("createdAt", "desc")
         );
         const snap = await getDocs(q);
@@ -130,7 +148,7 @@ export default function SellerDashboardPage() {
       }
     };
     fetchProducts();
-  }, [user, successMsg]);
+  }, [user, storeId, successMsg]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -191,6 +209,17 @@ export default function SellerDashboardPage() {
     }
     if (imageFiles.length === 0) {
       setErrorMsg("Veuillez ajouter au moins une image.");
+      return;
+    }
+    // Without a stores/{id} owned by this account, `isStoreOwner` cannot
+    // resolve on write and Firestore rejects the product. Say so instead of
+    // letting the save fail with a bare permission error.
+    if (!storeId) {
+      setErrorMsg(
+        storeLookupDone
+          ? "Aucune boutique n'est associée à ce compte. Créez votre boutique avant de publier un produit."
+          : "Chargement de votre boutique…"
+      );
       return;
     }
     setSaving(true);

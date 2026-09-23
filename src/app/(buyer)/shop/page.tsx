@@ -20,6 +20,7 @@ import { formatXOF } from "@/lib/format";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
+import { toProduct } from "@/lib/firestore-schema";
 import { fetchStoreNames } from "@/lib/store";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -55,21 +56,7 @@ function ShopContent() {
         const querySnapshot = await getDocs(collection(db, "products"));
         const fetchedProducts = querySnapshot.docs.map(doc => {
           const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name,
-            description: data.description,
-            price: data.price,
-            currency: "XOF",
-            images: data.imageUrls || [data.imageUrl],
-            category: data.category,
-            storeId: data.storeId,
-            storeName: "Boutique",
-            rating: 0,
-            reviewCount: 0,
-            stock: data.quantity || 0,
-            status: data.status
-          } as Product;
+          return toProduct(doc.id, data);
         });
         
         setProducts(fetchedProducts);

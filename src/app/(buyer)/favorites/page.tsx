@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
+import { toProduct } from "@/lib/firestore-schema";
 import { fetchStoreNames } from "@/lib/store";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -43,21 +44,7 @@ export default function FavoritesPage() {
         const querySnapshot = await getDocs(collection(db, "products"));
         const fetchedProducts = querySnapshot.docs.map(doc => {
           const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name,
-            description: data.description,
-            price: data.price,
-            currency: "XOF",
-            images: data.imageUrls || [data.imageUrl],
-            category: data.category,
-            storeId: data.storeId,
-            storeName: "Boutique",
-            rating: 0,
-            reviewCount: 0,
-            stock: data.quantity || 0,
-            status: data.status
-          } as Product;
+          return toProduct(doc.id, data);
         });
         const suggestions = fetchedProducts.slice(0, 8); // top 8 as suggestions
         setProducts(suggestions);
@@ -99,21 +86,7 @@ export default function FavoritesPage() {
           const productDoc = await getDoc(doc(db, "products", productId));
           if (productDoc.exists()) {
             const data = productDoc.data();
-            productsData.push({
-              id: productDoc.id,
-              name: data.name,
-              description: data.description,
-              price: data.price,
-              currency: "XOF",
-              images: data.imageUrls || [data.imageUrl],
-              category: data.category,
-              storeId: data.storeId,
-              storeName: "Boutique",
-              rating: 0,
-              reviewCount: 0,
-              stock: data.quantity || 0,
-              status: data.status
-            });
+            productsData.push(toProduct(productDoc.id, data));
           }
         }
         console.log("Fetched favorite products:", productsData);

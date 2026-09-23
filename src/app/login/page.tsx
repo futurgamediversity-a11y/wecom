@@ -23,29 +23,66 @@ export default function LoginPage() {
   const [err, setErr] = useState<string | null>(null);
   const { signInWithGoogle } = useAuth();
 
+  /**
+   * Where to land after signing in. Pages that send a visitor here (the
+   * product page's "Connectez-vous d'abord") pass ?next=; only same-site
+   * paths are accepted, so the parameter cannot be used as an open redirect.
+   */
+  function destination() {
+    if (typeof window === "undefined") return "/role";
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) return next;
+    return "/role";
+  }
+
+  function messageFor(error: { code?: string; message?: string }) {
+    switch (error.code) {
+      case "auth/operation-not-allowed":
+        return "La connexion Google n'est pas activée sur ce projet Firebase.";
+      case "auth/unauthorized-domain":
+        return "Ce domaine n'est pas autorisé dans Firebase Authentication.";
+      case "auth/popup-blocked":
+        return "La fenêtre Google a été bloquée par le navigateur.";
+      case "auth/popup-closed-by-user":
+      case "auth/cancelled-popup-request":
+        return "Connexion Google annulée.";
+      case "auth/invalid-credential":
+      case "auth/wrong-password":
+      case "auth/user-not-found":
+        return "E-mail ou mot de passe incorrect.";
+      default:
+        return error.message || "Erreur de connexion.";
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !password) return;
     setLoading(true);
     setErr(null);
-    
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      window.location.href = "/role";
+      window.location.href = destination();
     } catch (error: any) {
       console.error("Login error:", error);
-      setErr(error.message || "Erreur de connexion.");
+      setErr(messageFor(error));
       setLoading(false);
     }
   }
 
   async function handleGoogleSignIn() {
+    setLoading(true);
+    setErr(null);
     try {
       await signInWithGoogle();
-      window.location.href = "/role";
+      window.location.href = destination();
     } catch (error: any) {
       console.error("Google sign in error:", error);
-      setErr(error.message || "Erreur de connexion Google.");
+      // Only redirect on success — this used to navigate to /role even
+      // when the popup failed, leaving the visitor signed out.
+      setErr(messageFor(error));
+      setLoading(false);
     }
   }
 
@@ -135,11 +172,13 @@ export default function LoginPage() {
 
           {/* Social */}
           <div className="mt-6 space-y-3">
-            <Button 
-              variant="outline" 
-              size="md" 
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
               className="w-full gap-3"
               onClick={handleGoogleSignIn}
+              disabled={loading}
             >
               <span className="text-blue-500 text-lg font-black">G</span>
               Continuer avec Google

@@ -15,9 +15,10 @@ import {
 } from "lucide-react";
 import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
-import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
+import { fetchStoreProfile } from "@/lib/store";
 
 function StoreContent({ storeId }: { storeId: string }) {
   const [storeData, setStoreData] = useState<{
@@ -42,42 +43,12 @@ function StoreContent({ storeId }: { storeId: string }) {
   }, [storeId]);
 
   const fetchStoreData = async (id: string) => {
-    try {
-      console.log("Fetching store data for ID:", id);
-      // Try users collection first
-      const userRef = doc(db, "users", id);
-      const userSnap = await getDoc(userRef);
-      
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        console.log("User data found:", userData);
-        setStoreData({
-          name: userData.displayName || userData.storeName || "Boutique",
-          image: userData.photoURL || userData.logo || userData.storeImage || "/images/app_icon.png",
-          description: userData.description || userData.bio,
-          location: userData.location
-        });
-      } else {
-        // Try stores collection as fallback
-        const storeRef = doc(db, "stores", id);
-        const storeSnap = await getDoc(storeRef);
-        if (storeSnap.exists()) {
-          const storeInfo = storeSnap.data();
-          console.log("Store data found:", storeInfo);
-          setStoreData({
-            name: storeInfo.name || storeInfo.storeName || "Boutique",
-            image: storeInfo.logo || storeInfo.image || storeInfo.storeImage || "/images/app_icon.png",
-            description: storeInfo.description,
-            location: storeInfo.location
-          });
-        } else {
-          console.log("No store data found for ID:", id);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching store data:", error);
-      setLoadError(true);
-    }
+    // stores/{id} is authoritative for storeId; users/{id} covers older
+    // products that stored the seller's uid. Both reads are guarded inside
+    // fetchStoreProfile, so a failing one no longer hides the other.
+    const { profile, failed } = await fetchStoreProfile(id);
+    if (profile) setStoreData(profile);
+    if (failed) setLoadError(true);
   };
 
   const fetchStoreProducts = async (id: string) => {

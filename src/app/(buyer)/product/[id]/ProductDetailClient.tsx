@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
+import { fetchStoreProfile } from "@/lib/store";
 
 export default function ProductDetailClient({ id }: { id: string }) {
   const [product, setProduct] = useState<Product | null>(null);
@@ -76,43 +77,13 @@ export default function ProductDetailClient({ id }: { id: string }) {
             status: data.status
           } as Product);
 
-          // Fetch store data if storeId exists
+          // storeId is a stores/{id} document id; fetchStoreProfile reads
+          // that collection first and falls back to users/{id} for older
+          // products that stored the seller's uid instead.
           const sellerId = data.storeId || data.sellerId;
           if (sellerId) {
-            try {
-              console.log("Fetching store data for sellerId:", sellerId);
-              // Try users collection first (since storeId is actually the user's uid)
-              const userRef = doc(db, "users", sellerId);
-              const userSnap = await getDoc(userRef);
-              console.log("User snapshot exists:", userSnap.exists());
-              if (userSnap.exists()) {
-                const userData = userSnap.data();
-                console.log("User data:", userData);
-                setStoreData({
-                  name: userData.displayName || userData.storeName || "Boutique",
-                  image: userData.photoURL || userData.logo || userData.storeImage || "/images/app_icon.png"
-                });
-              } else {
-                console.log("User document not found, trying stores collection");
-                // Try stores collection as fallback
-                try {
-                  const storeRef = doc(db, "stores", sellerId);
-                  const storeSnap = await getDoc(storeRef);
-                  if (storeSnap.exists()) {
-                    const storeData = storeSnap.data();
-                    console.log("Store data:", storeData);
-                    setStoreData({
-                      name: storeData.name || storeData.storeName || "Boutique",
-                      image: storeData.logo || storeData.image || storeData.storeImage || "/images/app_icon.png"
-                    });
-                  }
-                } catch (storeError) {
-                  console.error("Error fetching store data:", storeError);
-                }
-              }
-            } catch (userError) {
-              console.error("Error fetching user data:", userError);
-            }
+            const { profile } = await fetchStoreProfile(sellerId);
+            if (profile) setStoreData({ name: profile.name, image: profile.image });
           }
         }
 

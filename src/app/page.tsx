@@ -1,151 +1,321 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowRight, ShoppingBag, Briefcase, Truck } from "lucide-react";
-import { WComLogo } from "@/components/brand/wcom-logo";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState, type MouseEvent } from "react";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Briefcase,
+  Search,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Truck,
+} from "lucide-react";
+
+const WORDS: [string, string][] = [
+  ["acheter", "#FF8200"],
+  ["vendre", "#009639"],
+  ["livrer", "#FF8200"],
+  ["travailler", "#009639"],
+];
+const COMMUNES = ["Cocody", "Marcory", "Yopougon", "Plateau", "Treichville", "Bingerville"];
+const PAYMENTS = ["wave", "om", "momo", "moov", "card"];
+const NAV = [
+  { href: "/shop", label: "Boutique" },
+  { href: "/role", label: "Vendre" },
+  { href: "/workspace", label: "Espace de travail" },
+  { href: "/livreur", label: "Livraison" },
+];
+
+const ease = "cubic-bezier(.2,.8,.2,1)";
+const rise = (delay: number) => ({ animation: `wcom-rise .7s ${delay}s ${ease} backwards` });
 
 /**
- * Landing / welcome page — desktop adaptation of the dramatic Flutter
- * role_screen: diagonal split (white top + dark bottom), dotted patterns,
- * rotated W-COM lockup, two giant CTAs in orange and green.
+ * Landing / welcome page — single-screen bento layout (no scroll).
  */
 export default function HomePage() {
+  const [i, setI] = useState(0);
+  const [c, setC] = useState(0);
+  const [spot, setSpot] = useState({ x: 30, y: 20 });
+
+  useEffect(() => {
+    const t1 = setInterval(() => setI((v) => (v + 1) % WORDS.length), 2400);
+    const t2 = setInterval(() => setC((v) => (v + 1) % COMMUNES.length), 1800);
+    return () => {
+      clearInterval(t1);
+      clearInterval(t2);
+    };
+  }, []);
+
+  const onHeroMove = (e: MouseEvent<HTMLElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setSpot({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
+  };
+
+  const [word, wordColor] = WORDS[i];
+
   return (
-    <main className="relative min-h-screen overflow-hidden bg-white">
-      {/* Top-right corner: dark diagonal panel with orange dots */}
-      <div
-        className="absolute inset-0 -z-0"
-        style={{
-          clipPath:
-            "polygon(100% 0%, 100% 100%, 90% 100%, 0% 5%, 0% 0%, 100% 0%)",
-          background: "#121212",
-        }}
-      >
-        <div className="absolute inset-0 bg-dots-orange opacity-90" />
-      </div>
+    <div
+      className="grid h-screen w-screen grid-rows-[56px_minmax(0,1fr)] gap-[14px] overflow-hidden bg-wcom-offwhite bg-dots-green px-[18px] pb-[18px] pt-[14px] text-wcom-ink"
+      style={{ backgroundImage: "radial-gradient(circle, rgba(0,150,57,.10) 1.5px, transparent 1.5px)" }}
+    >
+      {/* Header */}
+      <header className="flex items-center justify-between gap-4" style={rise(0)}>
+        <Link href="/" className="flex items-center gap-2.5">
+          <span className="block h-11 w-11 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/app_icon.png"
+              alt="W-COM"
+              className="block h-full w-full object-cover"
+              style={{ transform: "scale(1.4) translateY(3%)" }}
+            />
+          </span>
+          <span className="text-[19px] font-black tracking-wider">
+            <span className="text-wcom-orange">W</span>-COM
+          </span>
+        </Link>
 
-      {/* Background dots (green) on white area */}
-      <div className="absolute inset-0 bg-dots-green opacity-100" />
+        <nav className="flex items-center gap-0.5 rounded-xl border border-neutral-200 bg-white p-1">
+          {NAV.map((n) => (
+            <Link
+              key={n.href}
+              href={n.href}
+              className="rounded-lg px-3.5 py-2 text-[13px] font-semibold text-neutral-700 transition-colors hover:bg-neutral-100 hover:text-wcom-ink"
+            >
+              {n.label}
+            </Link>
+          ))}
+        </nav>
 
-      {/* Green diagonal line */}
-      <svg
-        className="absolute inset-0 h-full w-full"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        aria-hidden
-      >
-        <line
-          x1="0"
-          y1="5"
-          x2="90"
-          y2="100"
-          stroke="#009639"
-          strokeWidth="0.8"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-
-      {/* Top nav (minimal — login/register only) */}
-      <header className="relative z-20 mx-auto flex max-w-7xl items-center justify-between px-8 py-6">
         <div className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-sm bg-wcom-orange text-white font-black">
-            W
-          </span>
-          <span className="text-xl font-black tracking-wider text-white drop-shadow">
-            W-COM
-          </span>
-        </div>
-        <nav className="flex items-center gap-3">
           <Link
             href="/login"
-            className="rounded-sm px-4 py-2 text-sm font-bold text-white hover:bg-white/10"
+            className="inline-flex h-10 items-center rounded-[10px] px-4 text-sm font-bold transition-colors hover:bg-neutral-100"
           >
             Se connecter
           </Link>
-          <Link href="/register">
-            <Button variant="primary" size="sm">
-              Créer un compte
-            </Button>
+          <Link
+            href="/register"
+            className="inline-flex h-10 items-center rounded-[10px] bg-wcom-ink px-[18px] text-sm font-bold text-white transition hover:-translate-y-px hover:bg-wcom-orange"
+          >
+            Créer un compte
           </Link>
-        </nav>
+        </div>
       </header>
 
-      {/* Hero content */}
-      <section className="relative z-10 mx-auto grid max-w-7xl grid-cols-12 gap-8 px-8 pt-10">
-        {/* PRODUITS & SERVICES (top-right, orange on dark) */}
+      {/* Bento grid */}
+      <main className="grid min-h-0 grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] grid-rows-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,.78fr)] gap-3">
+        {/* Hero */}
+        <section
+          onMouseMove={onHeroMove}
+          className="relative col-start-1 row-span-3 row-start-1 flex flex-col overflow-hidden rounded-xl bg-wcom-dark text-white"
+          style={{ padding: "clamp(22px,3.6vh,40px)", ...rise(0.05) }}
+        >
+          <div className="pointer-events-none absolute inset-0 bg-dots-orange" style={{ backgroundImage: "radial-gradient(circle, rgba(255,130,0,.16) 1.5px, transparent 1.5px)" }} />
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: `radial-gradient(520px circle at ${spot.x}% ${spot.y}%, rgba(255,130,0,.22), transparent 60%)` }}
+          />
+          <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+            <line x1="0" y1="62" x2="100" y2="104" stroke="#009639" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+          </svg>
+
+          <div className="relative flex items-center gap-2 self-start rounded-full border border-white/10 bg-white/[.07] py-1.5 pl-2 pr-3 text-xs font-semibold text-white/85">
+            <span className="h-2 w-2 rounded-full bg-wcom-green" style={{ animation: "wcom-pulse 2s infinite" }} />
+            Marketplace ivoirien · Abidjan
+          </div>
+
+          <h1
+            className="relative max-w-[12ch] font-black leading-[.98] tracking-[-.035em]"
+            style={{ margin: "clamp(16px,3vh,32px) 0 0", fontSize: "clamp(34px, calc(3.2vw + 2.4vh), 80px)", textWrap: "balance" }}
+          >
+            Le marché ivoirien pour{" "}
+            <span key={word} className="inline-block" style={{ color: wordColor, animation: `wcom-word-in .6s ${ease}` }}>
+              {word}.
+            </span>
+          </h1>
+
+          <p
+            className="relative max-w-[40ch] font-medium leading-relaxed text-white/80"
+            style={{ margin: "clamp(12px,2vh,20px) 0 0", fontSize: "clamp(14px,1.8vh,17px)" }}
+          >
+            Explorez le marché ivoirien et saisissez les meilleures opportunités — ou lancez votre boutique en quelques minutes.
+          </p>
+
+          <Link
+            href="/shop"
+            className="relative flex h-[52px] max-w-[460px] items-center gap-2.5 rounded-[14px] bg-white pl-4 pr-1.5 text-sm font-medium text-neutral-500 shadow-[0_10px_30px_rgba(0,0,0,.25)] transition hover:-translate-y-px hover:shadow-[0_0_0_4px_rgba(255,130,0,.35),0_10px_30px_rgba(0,0,0,.25)]"
+            style={{ marginTop: "clamp(16px,3vh,28px)" }}
+          >
+            <Search className="h-[18px] w-[18px]" />
+            <span className="flex-1">Rechercher un produit, une boutique…</span>
+            <span className="inline-flex h-10 items-center rounded-[10px] bg-wcom-orange px-4 text-[13px] font-extrabold text-white">
+              Explorer
+            </span>
+          </Link>
+
+          <div className="relative mt-auto flex items-end justify-between gap-4">
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/shop"
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-wcom-orange px-[18px] text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:shadow-glow"
+              >
+                Acheter maintenant <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+              </Link>
+              <Link
+                href="/role"
+                className="inline-flex h-11 items-center rounded-xl border border-white/20 px-[18px] text-sm font-bold text-white transition hover:border-wcom-green hover:bg-wcom-green/20"
+              >
+                Vendre sur W-COM
+              </Link>
+            </div>
+
+            <div
+              className="relative mb-1.5 mr-1.5 shrink-0"
+              style={{ width: "clamp(96px,14vh,150px)", height: "clamp(96px,14vh,150px)", animation: "wcom-floaty 6s ease-in-out infinite" }}
+            >
+              <div className="absolute inset-0 rounded-[22px] bg-wcom-green" style={{ transform: "translate(10px,12px)" }} />
+              <div className="absolute inset-0 rounded-[22px] bg-wcom-orange" style={{ transform: "translate(5px,6px)" }} />
+              <div className="absolute inset-0 overflow-hidden rounded-[22px] border-[3px] border-wcom-orange bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/images/app_icon.png" alt="" className="block h-full w-full object-cover" style={{ transform: "scale(1.18)" }} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Produits & Services */}
         <Link
           href="/shop"
-          className="group col-span-7 col-start-6 row-start-1 mt-6 block rounded-xl p-8 transition active:scale-[0.99]"
+          className="relative col-span-2 col-start-2 row-start-1 flex flex-col justify-between overflow-hidden rounded-xl bg-wcom-orange text-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-18px_rgba(255,130,0,.7)]"
+          style={{ padding: "clamp(18px,3vh,30px)", ...rise(0.12) }}
         >
-          <div className="flex flex-col items-center text-center text-white">
-            <ShoppingBag className="h-16 w-16 text-wcom-orange" strokeWidth={2.5} />
-            <h2 className="mt-3 text-[3.5rem] font-black leading-none tracking-tight text-wcom-orange md:text-6xl">
-              PRODUITS &<br />SERVICES
+          <ShoppingBag className="absolute -bottom-[18%] -right-[4%] h-auto w-[52%] -rotate-12 opacity-[.16]" strokeWidth={1.5} />
+          <div className="relative flex items-start justify-between">
+            <span className="grid h-12 w-12 place-items-center rounded-[14px] bg-white/20">
+              <ShoppingBag className="h-6 w-6" strokeWidth={2.5} />
+            </span>
+            <span className="grid h-11 w-11 place-items-center rounded-full bg-white">
+              <ArrowUpRight className="h-5 w-5 text-wcom-orange" strokeWidth={2.5} />
+            </span>
+          </div>
+          <div className="relative">
+            <h2 className="font-black leading-[.95] tracking-[-.03em]" style={{ fontSize: "clamp(28px, calc(2vw + 2vh), 56px)" }}>
+              Produits &amp; Services
             </h2>
-            <p className="mt-4 max-w-md text-lg font-semibold">
+            <p className="mt-2.5 max-w-[38ch] font-semibold leading-snug text-wcom-dark" style={{ fontSize: "clamp(13px,1.7vh,16px)" }}>
               Explorez le marché ivoirien et saisissez les meilleures opportunités.
             </p>
-            <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-wcom-orange transition group-hover:gap-3">
-              Acheter maintenant <ArrowRight className="h-4 w-4" />
-            </span>
           </div>
         </Link>
 
-        {/* BOUTIQUE & ESPACE DE TRAVAIL (bottom-left, green on white) */}
+        {/* Boutique & Espace de travail */}
         <Link
           href="/role"
-          className="group col-span-7 col-start-1 row-start-2 mt-32 block rounded-xl p-8 transition active:scale-[0.99]"
+          className="relative col-start-2 row-start-2 flex flex-col justify-between overflow-hidden rounded-xl bg-wcom-green text-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-18px_rgba(0,150,57,.7)]"
+          style={{ padding: "clamp(18px,2.8vh,26px)", ...rise(0.2) }}
         >
-          <div className="flex flex-col items-start text-left">
-            <div className="grid h-16 w-16 place-items-center rounded-lg bg-wcom-green">
-              <Briefcase className="h-9 w-9 text-white" strokeWidth={2.5} />
-            </div>
-            <h2 className="mt-3 text-[3rem] font-black leading-none tracking-tight text-wcom-green md:text-5xl">
-              BOUTIQUE &<br />ESPACE DE<br />TRAVAIL
-            </h2>
-            <p className="mt-4 max-w-md text-lg font-extrabold text-black">
-              Lancez votre business, imposez votre marque et dominez les ventes.
-            </p>
-            <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-wcom-green transition group-hover:gap-3">
-              Vendre / créer un espace <ArrowRight className="h-4 w-4" />
+          <div className="flex items-start justify-between">
+            <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/[.18]">
+              <Briefcase className="h-[22px] w-[22px]" strokeWidth={2.5} />
+            </span>
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-white">
+              <ArrowUpRight className="h-4 w-4 text-wcom-green" strokeWidth={2.5} />
             </span>
           </div>
-        </Link>
-      </section>
-
-      {/* Center rotated W-COM lockup */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
-        <WComLogo size="lg" />
-      </div>
-
-      {/* Feature strip at very bottom */}
-      <section className="relative z-10 mx-auto mt-10 grid max-w-7xl grid-cols-3 gap-6 px-8 pb-12">
-        {[
-          {
-            icon: ShoppingBag,
-            title: "Achat sécurisé",
-            text: "Paiement local (Wave, Orange Money, MTN MoMo, Moov) ou par carte.",
-          },
-          {
-            icon: Truck,
-            title: "Livraison Abidjan",
-            text: "Cocody, Marcory, Yopougon, Plateau, Treichville, Bingerville.",
-          },
-          {
-            icon: Briefcase,
-            title: "Outils pour vendeurs",
-            text: "Boutique, statistiques, marketing, AI assistant intégré.",
-          },
-        ].map(({ icon: Icon, title, text }) => (
-          <div
-            key={title}
-            className="rounded-lg border border-neutral-200 bg-white/90 p-5 backdrop-blur"
-          >
-            <Icon className="h-6 w-6 text-wcom-orange" />
-            <h3 className="mt-3 text-base font-bold">{title}</h3>
-            <p className="mt-1 text-sm text-neutral-600">{text}</p>
+          <div>
+            <h3 className="font-black leading-none tracking-[-.025em]" style={{ fontSize: "clamp(20px, calc(1.1vw + 1.4vh), 32px)" }}>
+              Boutique &amp; Espace de travail
+            </h3>
+            <p className="mt-2 font-bold leading-snug" style={{ fontSize: "clamp(12px,1.5vh,14px)" }}>
+              Lancez votre business et imposez votre marque.
+            </p>
           </div>
-        ))}
-      </section>
-    </main>
+        </Link>
+
+        {/* Livraison */}
+        <Link
+          href="/livreur"
+          className="relative col-start-3 row-start-2 flex flex-col justify-between overflow-hidden rounded-xl bg-wcom-surface text-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-18px_rgba(9,10,15,.6)]"
+          style={{ padding: "clamp(18px,2.8vh,26px)", ...rise(0.28) }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="grid h-11 w-11 place-items-center rounded-xl bg-wcom-orange/[.14]">
+              <Truck className="h-[22px] w-[22px] text-wcom-orange" strokeWidth={2.2} />
+            </span>
+            <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-white/70">
+              <span className="h-[7px] w-[7px] rounded-full bg-wcom-green" style={{ animation: "wcom-pulse 2s infinite" }} />
+              En route
+            </span>
+          </div>
+          <div>
+            <div
+              className="mb-3 h-[3px] rounded-[3px] opacity-80"
+              style={{
+                backgroundImage: "linear-gradient(90deg,#FF8200 50%,transparent 50%)",
+                backgroundSize: "20px 3px",
+                animation: "wcom-road 1s linear infinite",
+              }}
+            />
+            <h3 className="font-black leading-none tracking-[-.025em]" style={{ fontSize: "clamp(20px, calc(1.1vw + 1.4vh), 32px)" }}>
+              Livraison Abidjan
+            </h3>
+            <p className="mt-2 font-semibold text-white/70" style={{ fontSize: "clamp(12px,1.5vh,14px)" }}>
+              Vers{" "}
+              <span key={c} className="inline-block font-extrabold text-white" style={{ animation: `wcom-word-in .5s ${ease}` }}>
+                {COMMUNES[c]}
+              </span>
+            </p>
+          </div>
+        </Link>
+
+        {/* Achat sécurisé */}
+        <div
+          className="relative col-start-2 row-start-3 flex flex-col justify-between overflow-hidden rounded-xl border border-neutral-200 bg-white"
+          style={{ padding: "clamp(14px,2.2vh,22px) 0", ...rise(0.36) }}
+        >
+          <div className="flex items-center gap-2.5" style={{ padding: "0 clamp(16px,2.2vh,22px)" }}>
+            <ShieldCheck className="h-5 w-5 text-wcom-green" strokeWidth={2.2} />
+            <span className="text-[15px] font-extrabold">Achat sécurisé</span>
+          </div>
+          <div
+            className="relative overflow-hidden"
+            style={{
+              WebkitMaskImage: "linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)",
+              maskImage: "linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)",
+            }}
+          >
+            <div className="flex w-max gap-2.5" style={{ animation: "wcom-marquee 16s linear infinite" }}>
+              {[...PAYMENTS, ...PAYMENTS].map((p, k) => (
+                <span key={k} className="grid h-10 w-16 shrink-0 place-items-center overflow-hidden rounded-[10px] border border-neutral-200 bg-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/images/payments/${p}.png`} alt={p} className="max-h-7 max-w-12 object-contain" />
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Outils pour vendeurs */}
+        <Link
+          href="/seller/dashboard"
+          className="relative col-start-3 row-start-3 flex flex-col justify-between overflow-hidden rounded-xl border border-neutral-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-wcom-orange"
+          style={{ padding: "clamp(14px,2.2vh,22px)", ...rise(0.44) }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-2.5">
+              <Sparkles className="h-5 w-5 text-wcom-orange" strokeWidth={2.2} />
+              <span className="text-[15px] font-extrabold">Outils pour vendeurs</span>
+            </span>
+            <ArrowUpRight className="h-[18px] w-[18px]" strokeWidth={2.2} />
+          </div>
+          <p className="font-medium leading-snug text-neutral-600" style={{ fontSize: "clamp(12px,1.5vh,14px)" }}>
+            Boutique, statistiques, marketing et AI assistant intégré.
+          </p>
+        </Link>
+      </main>
+    </div>
   );
 }

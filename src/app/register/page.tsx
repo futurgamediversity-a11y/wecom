@@ -10,18 +10,29 @@ import { Card } from "@/components/ui/card";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
+import { useAuth } from "@/lib/auth-context";
 
 /**
  * Port of lib/screens/register_screen.dart — same visual register card
  * as login: name + email + password fields, primary orange CTA, link back to login.
  */
 export default function RegisterPage() {
+  const { signInWithGoogle } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  async function handleGoogleSignIn() {
+    try {
+      await signInWithGoogle();
+      window.location.href = "/role";
+    } catch (error: any) {
+      setErr(error.message || "Erreur de connexion Google.");
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -161,6 +172,26 @@ export default function RegisterPage() {
               Se connecter
             </Link>
           </p>
+
+          {/* Divider */}
+          <div className="mt-6 flex items-center gap-4">
+            <div className="h-px flex-1 bg-neutral-200" />
+            <span className="text-xs uppercase tracking-wide text-neutral-400">
+              ou
+            </span>
+            <div className="h-px flex-1 bg-neutral-200" />
+          </div>
+
+          {/* Google sign-up */}
+          <Button
+            variant="outline"
+            size="md"
+            className="mt-4 w-full gap-3"
+            onClick={handleGoogleSignIn}
+          >
+            <span className="text-blue-500 text-lg font-black">G</span>
+            Continuer avec Google
+          </Button>
         </Card>
       </div>
     </main>

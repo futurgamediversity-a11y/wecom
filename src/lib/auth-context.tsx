@@ -175,20 +175,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Google sign-in
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const currentUser = result.user;
-      const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-      if (!userDoc.exists()) {
-        await setDoc(doc(db, "users", currentUser.uid), {
-          displayName: currentUser.displayName,
-          email: currentUser.email,
-          createdAt: new Date(),
-          favorites: []
-        });
-      }
-    } catch (error) {
-      console.error("Google sign in error:", error);
+    const result = await signInWithPopup(auth, provider);
+    const currentUser = result.user;
+    const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+    if (!userDoc.exists()) {
+      await setDoc(doc(db, "users", currentUser.uid), {
+        displayName: currentUser.displayName,
+        email: currentUser.email,
+        createdAt: new Date(),
+        favorites: []
+      });
     }
   };
 

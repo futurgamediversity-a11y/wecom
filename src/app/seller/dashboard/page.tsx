@@ -458,6 +458,7 @@ export default function SellerDashboardPage() {
             </div>
           )}
         </div>
+      </div>
       )}
 
       {/* Add product modal */}

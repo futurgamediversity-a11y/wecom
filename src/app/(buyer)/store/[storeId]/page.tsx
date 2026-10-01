@@ -15,19 +15,17 @@ import {
 } from "lucide-react";
 import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
-import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
+import { toProduct, STORE_FALLBACK_IMAGE } from "@/lib/firestore-schema";
+import { fetchStoreProfile, type StoreProfile } from "@/lib/store";
 
 function StoreContent({ storeId }: { storeId: string }) {
-  const [storeData, setStoreData] = useState<{
-    name: string;
-    image: string;
-    description?: string;
-    location?: string;
-  } | null>(null);
+  const [storeData, setStoreData] = useState<StoreProfile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const router = useRouter();
   const { favorites, toggleFavorite, user } = useAuth();
 
@@ -41,41 +39,12 @@ function StoreContent({ storeId }: { storeId: string }) {
   }, [storeId]);
 
   const fetchStoreData = async (id: string) => {
-    try {
-      console.log("Fetching store data for ID:", id);
-      // Try users collection first
-      const userRef = doc(db, "users", id);
-      const userSnap = await getDoc(userRef);
-      
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        console.log("User data found:", userData);
-        setStoreData({
-          name: userData.displayName || userData.storeName || "Boutique",
-          image: userData.photoURL || userData.logo || userData.storeImage || "/images/app_icon.png",
-          description: userData.description || userData.bio,
-          location: userData.location
-        });
-      } else {
-        // Try stores collection as fallback
-        const storeRef = doc(db, "stores", id);
-        const storeSnap = await getDoc(storeRef);
-        if (storeSnap.exists()) {
-          const storeInfo = storeSnap.data();
-          console.log("Store data found:", storeInfo);
-          setStoreData({
-            name: storeInfo.name || storeInfo.storeName || "Boutique",
-            image: storeInfo.logo || storeInfo.image || storeInfo.storeImage || "/images/app_icon.png",
-            description: storeInfo.description,
-            location: storeInfo.location
-          });
-        } else {
-          console.log("No store data found for ID:", id);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching store data:", error);
-    }
+    // stores/{id} is authoritative for storeId; users/{id} covers older
+    // products that stored the seller's uid. Both reads are guarded inside
+    // fetchStoreProfile, so a failing one no longer hides the other.
+    const { profile, failed } = await fetchStoreProfile(id);
+    if (profile) setStoreData(profile);
+    if (failed) setLoadError(true);
   };
 
   const fetchStoreProducts = async (id: string) => {
@@ -88,28 +57,14 @@ function StoreContent({ storeId }: { storeId: string }) {
       const querySnapshot = await getDocs(q);
       const fetchedProducts = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        return {
-          id: doc.id,
-          name: data.name,
-          description: data.description,
-          price: data.price,
-          currency: "XOF",
-          images: data.imageUrls || [data.imageUrl],
-          category: data.category,
-          storeId: data.storeId,
-          sellerId: data.sellerId,
-          storeName: "Boutique",
-          rating: 0,
-          reviewCount: 0,
-          stock: data.quantity || 0,
-          status: data.status
-        } as Product;
+        return toProduct(doc.id, data);
       });
       
       console.log("Found products:", fetchedProducts.length);
       setProducts(fetchedProducts);
     } catch (error) {
       console.error("Error fetching store products:", error);
+      setLoadError(true);
     }
   };
 
@@ -124,7 +79,27 @@ function StoreContent({ storeId }: { storeId: string }) {
     );
   }
 
-  if (!storeData) {
+  // A read that FAILED and a store that does not exist are different
+  // problems. Both used to render "Boutique non trouvée", which hid
+  // permission errors behind a plausible-looking empty state.
+  if (!storeData && loadError) {
+    return (
+      <main className="mx-auto max-w-7xl px-6 py-8">
+        <div className="flex items-center gap-2 text-neutral-500">
+          <ArrowLeft className="h-5 w-5 cursor-pointer" onClick={() => router.back()} />
+          <span>Impossible de charger la boutique.</span>
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 rounded-sm border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold hover:border-wcom-orange/40"
+        >
+          Réessayer
+        </button>
+      </main>
+    );
+  }
+
+  if (!storeData && products.length === 0) {
     return (
       <main className="mx-auto max-w-7xl px-6 py-8">
         <div className="flex items-center gap-2 text-neutral-500">
@@ -134,6 +109,11 @@ function StoreContent({ storeId }: { storeId: string }) {
       </main>
     );
   }
+
+  // The profile document may be unreadable while the catalogue is not, so
+  // keep the products browsable rather than blanking the whole page.
+  const store: StoreProfile =
+    storeData ?? { name: "Boutique", image: STORE_FALLBACK_IMAGE };
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
@@ -152,8 +132,8 @@ function StoreContent({ storeId }: { storeId: string }) {
           {/* Store Image */}
           <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-100 md:h-32 md:w-32">
             <Image
-              src={storeData.image}
-              alt={storeData.name}
+              src={store.image}
+              alt={store.name}
               fill
               sizes="(max-width: 768px) 96px, 128px"
               className="object-cover"
@@ -165,27 +145,33 @@ function StoreContent({ storeId }: { storeId: string }) {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-black text-neutral-900 md:text-3xl">
-                  {storeData.name}
+                  {store.name}
                 </h1>
-                {storeData.location && (
+                {store.location && (
                   <div className="mt-2 flex items-center gap-2 text-sm text-neutral-500">
                     <MapPin className="h-4 w-4" />
-                    <span>{storeData.location}</span>
+                    <span>{store.location}</span>
                   </div>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-sm">
-                  <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-                  <span className="font-bold">4.5</span>
-                  <span className="text-neutral-500">(12 avis)</span>
-                </div>
+                {/* stores/{id} carries averageRating and reviewCount; the
+                    header used to show a hardcoded 4.5 (12 avis). */}
+                {store.rating !== undefined && (
+                  <div className="flex items-center gap-1 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-sm">
+                    <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
+                    <span className="font-bold">{store.rating.toFixed(1)}</span>
+                    <span className="text-neutral-500">
+                      ({store.reviewCount ?? 0} avis)
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {storeData.description && (
+            {store.description && (
               <p className="mt-3 text-sm text-neutral-600 leading-relaxed">
-                {storeData.description}
+                {store.description}
               </p>
             )}
 

@@ -25,12 +25,42 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  async function handleGoogleSignIn() {
+  function messageFor(error: { code?: string; message?: string }) {
+    switch (error.code) {
+      case "auth/operation-not-allowed":
+        return "La connexion Google n'est pas activée sur ce projet Firebase.";
+      case "auth/unauthorized-domain":
+        return "Ce domaine n'est pas autorisé dans Firebase Authentication.";
+      case "auth/popup-blocked":
+        return "La fenêtre Google a été bloquée par le navigateur.";
+      case "auth/popup-closed-by-user":
+      case "auth/cancelled-popup-request":
+        return "Inscription Google annulée.";
+      case "auth/email-already-in-use":
+        return "Un compte existe déjà avec cette adresse e-mail.";
+      case "auth/weak-password":
+        return "Le mot de passe doit contenir au moins 6 caractères.";
+      default:
+        return error.message || "Erreur lors de la création du compte.";
+    }
+  }
+
+  /**
+   * Google sign-up. signInWithPopup covers both cases: Firebase creates the
+   * account on first use, and signInWithGoogle writes the users/{uid}
+   * document when it does not already exist, so the same call serves
+   * sign-up and sign-in.
+   */
+  async function handleGoogleSignUp() {
+    setLoading(true);
+    setErr(null);
     try {
       await signInWithGoogle();
       window.location.href = "/role";
     } catch (error: any) {
-      setErr(error.message || "Erreur de connexion Google.");
+      console.error("Google sign up error:", error);
+      setErr(messageFor(error));
+      setLoading(false);
     }
   }
 
@@ -64,7 +94,7 @@ export default function RegisterPage() {
       window.location.href = "/role";
     } catch (error: any) {
       console.error("Registration error:", error);
-      setErr(error.message || "Erreur lors de la création du compte.");
+      setErr(messageFor(error));
       setLoading(false);
     }
   }
@@ -166,32 +196,31 @@ export default function RegisterPage() {
             </Button>
           </form>
 
+          {/* Divider */}
+          <div className="mt-8 flex items-center gap-4">
+            <div className="h-px flex-1 bg-neutral-200" />
+            <span className="text-xs uppercase tracking-wide text-neutral-400">ou</span>
+            <div className="h-px flex-1 bg-neutral-200" />
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            className="mt-6 w-full gap-3"
+            onClick={handleGoogleSignUp}
+            disabled={loading}
+          >
+            <span className="text-blue-500 text-lg font-black">G</span>
+            S&apos;inscrire avec Google
+          </Button>
+
           <p className="mt-6 text-center text-sm text-neutral-500">
             Déjà un compte ?{" "}
             <Link href="/login" className="font-bold text-wcom-orange hover:underline">
               Se connecter
             </Link>
           </p>
-
-          {/* Divider */}
-          <div className="mt-6 flex items-center gap-4">
-            <div className="h-px flex-1 bg-neutral-200" />
-            <span className="text-xs uppercase tracking-wide text-neutral-400">
-              ou
-            </span>
-            <div className="h-px flex-1 bg-neutral-200" />
-          </div>
-
-          {/* Google sign-up */}
-          <Button
-            variant="outline"
-            size="md"
-            className="mt-4 w-full gap-3"
-            onClick={handleGoogleSignIn}
-          >
-            <span className="text-blue-500 text-lg font-black">G</span>
-            Continuer avec Google
-          </Button>
         </Card>
       </div>
     </main>

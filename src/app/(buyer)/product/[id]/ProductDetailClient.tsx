@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import {
   Star,
   Heart,
@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
+import { toProduct } from "@/lib/firestore-schema";
+import { fetchStoreProfile } from "@/lib/store";
 
 export default function ProductDetailClient({ id }: { id: string }) {
   const [product, setProduct] = useState<Product | null>(null);
@@ -29,6 +31,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [addedToCart, setAddedToCart] = useState(false);
   const [storeData, setStoreData] = useState<{ name: string; image: string } | null>(null);
+  const router = useRouter();
   const { favorites, toggleFavorite, user, addToCart } = useAuth();
   const isFavorite = product ? favorites.includes(product.id) : false;
 
@@ -58,81 +61,22 @@ export default function ProductDetailClient({ id }: { id: string }) {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setProduct({
-            id: docSnap.id,
-            name: data.name,
-            description: data.description,
-            price: data.price,
-            currency: "XOF",
-            images: data.imageUrls || [data.imageUrl],
-            category: data.category,
-            storeId: data.storeId,
-            sellerId: data.sellerId,
-            storeName: "Boutique",
-            rating: 0,
-            reviewCount: 0,
-            stock: data.quantity || 0,
-            status: data.status
-          } as Product);
+          setProduct(toProduct(docSnap.id, data));
 
-          // Fetch store data if storeId exists
+          // storeId is a stores/{id} document id; fetchStoreProfile reads
+          // that collection first and falls back to users/{id} for older
+          // products that stored the seller's uid instead.
           const sellerId = data.storeId || data.sellerId;
           if (sellerId) {
-            try {
-              console.log("Fetching store data for sellerId:", sellerId);
-              // Try users collection first (since storeId is actually the user's uid)
-              const userRef = doc(db, "users", sellerId);
-              const userSnap = await getDoc(userRef);
-              console.log("User snapshot exists:", userSnap.exists());
-              if (userSnap.exists()) {
-                const userData = userSnap.data();
-                console.log("User data:", userData);
-                setStoreData({
-                  name: userData.displayName || userData.storeName || "Boutique",
-                  image: userData.photoURL || userData.logo || userData.storeImage || "/images/app_icon.png"
-                });
-              } else {
-                console.log("User document not found, trying stores collection");
-                // Try stores collection as fallback
-                try {
-                  const storeRef = doc(db, "stores", sellerId);
-                  const storeSnap = await getDoc(storeRef);
-                  if (storeSnap.exists()) {
-                    const storeData = storeSnap.data();
-                    console.log("Store data:", storeData);
-                    setStoreData({
-                      name: storeData.name || storeData.storeName || "Boutique",
-                      image: storeData.logo || storeData.image || storeData.storeImage || "/images/app_icon.png"
-                    });
-                  }
-                } catch (storeError) {
-                  console.error("Error fetching store data:", storeError);
-                }
-              }
-            } catch (userError) {
-              console.error("Error fetching user data:", userError);
-            }
+            const { profile } = await fetchStoreProfile(sellerId);
+            if (profile) setStoreData({ name: profile.name, image: profile.image });
           }
         }
 
         const querySnapshot = await getDocs(collection(db, "products"));
         const fetched = querySnapshot.docs.map(doc => {
           const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name,
-            description: data.description,
-            price: data.price,
-            currency: "XOF",
-            images: data.imageUrls || [data.imageUrl],
-            category: data.category,
-            storeId: data.storeId,
-            storeName: "Boutique",
-            rating: 0,
-            reviewCount: 0,
-            stock: data.quantity || 0,
-            status: data.status
-          } as Product;
+          return toProduct(doc.id, data);
         });
         if (fetched.length > 0) {
           setSuggestions(fetched.filter(p => p.id !== id).slice(0, 4));
@@ -297,8 +241,12 @@ export default function ProductDetailClient({ id }: { id: string }) {
               </button>
             </div>
             <button
-              onClick={handleAddToCart}
-              disabled={!user || addedToCart}
+              onClick={
+                user
+                  ? handleAddToCart
+                  : () => router.push(`/login?next=${encodeURIComponent(`/product/${id}`)}`)
+              }
+              disabled={addedToCart}
               className="flex flex-1 items-center justify-center gap-2 rounded-sm bg-wcom-orange px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-amber-600 disabled:opacity-70"
             >
               {addedToCart ? (
@@ -328,10 +276,8 @@ export default function ProductDetailClient({ id }: { id: string }) {
           </div>
 
           {/* Store */}
-          <Link
-            href={`/store/${p.storeId || ""}`}
-            className="mt-5 flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4 hover:border-wcom-orange/40 transition"
-          >
+          {/* A product with no storeId used to link to /store/, which 404s. */}
+          <StoreLink storeId={p.storeId}>
             <div className="relative h-12 w-12 overflow-hidden rounded-md bg-neutral-100">
               <Image
                 src={storeData?.image || "/images/app_icon.png"}
@@ -343,12 +289,14 @@ export default function ProductDetailClient({ id }: { id: string }) {
             </div>
             <div className="flex-1">
               <p className="text-sm font-bold text-neutral-900">{storeData?.name || p.storeName || "Boutique"}</p>
-              <p className="text-xs text-neutral-500">Visiter la boutique</p>
+              <p className="text-xs text-neutral-500">
+                {p.storeId ? "Visiter la boutique" : "Boutique non renseignée"}
+              </p>
             </div>
             <div className="grid h-8 w-8 place-items-center rounded-full bg-wcom-green/10 text-wcom-green">
               <Store className="h-4 w-4" />
             </div>
-          </Link>
+          </StoreLink>
         </section>
       </div>
 
@@ -412,5 +360,21 @@ export default function ProductDetailClient({ id }: { id: string }) {
         </div>
       </section>
     </main>
+  );
+}
+
+/**
+ * Renders the storefront card as a link only when there is a store to open.
+ * Products stored without a storeId produced href="/store/", which Next.js
+ * redirects to /store and then 404s.
+ */
+function StoreLink({ storeId, children }: { storeId?: string; children: ReactNode }) {
+  const base =
+    "mt-5 flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4 transition";
+  if (!storeId) return <div className={base}>{children}</div>;
+  return (
+    <Link href={`/store/${storeId}`} className={`${base} hover:border-wcom-orange/40`}>
+      {children}
+    </Link>
   );
 }

@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
+import { toProduct } from "@/lib/firestore-schema";
+import { fetchStoreNames } from "@/lib/store";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -25,29 +27,28 @@ export default function FavoritesPage() {
   useEffect(() => {
     console.log("FavoritesPage useEffect - user:", user?.uid, "favorites:", favorites);
     
-    const fetchSuggestions = async () => {
+    const applyStoreNames = async (list: Product[]) => {
+    const names = await fetchStoreNames(list.map((product) => product.storeId ?? ""));
+    if (names.size === 0) return;
+    setProducts((previous) =>
+      previous.map((product) => ({
+        ...product,
+        storeName: names.get(product.storeId ?? "") ?? product.storeName,
+      }))
+    );
+  };
+
+  const fetchSuggestions = async () => {
       try {
         console.log("Fetching suggestions from database...");
         const querySnapshot = await getDocs(collection(db, "products"));
         const fetchedProducts = querySnapshot.docs.map(doc => {
           const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name,
-            description: data.description,
-            price: data.price,
-            currency: "XOF",
-            images: data.imageUrls || [data.imageUrl],
-            category: data.category,
-            storeId: data.storeId,
-            storeName: "Boutique",
-            rating: 0,
-            reviewCount: 0,
-            stock: data.quantity || 0,
-            status: data.status
-          } as Product;
+          return toProduct(doc.id, data);
         });
-        setProducts(fetchedProducts.slice(0, 8)); // Display top 8 products as suggestions
+        const suggestions = fetchedProducts.slice(0, 8); // top 8 as suggestions
+        setProducts(suggestions);
+        await applyStoreNames(suggestions);
         setIsDisplayingSuggestions(true);
       } catch (err) {
         console.error("Error fetching suggestions:", err);
@@ -85,25 +86,12 @@ export default function FavoritesPage() {
           const productDoc = await getDoc(doc(db, "products", productId));
           if (productDoc.exists()) {
             const data = productDoc.data();
-            productsData.push({
-              id: productDoc.id,
-              name: data.name,
-              description: data.description,
-              price: data.price,
-              currency: "XOF",
-              images: data.imageUrls || [data.imageUrl],
-              category: data.category,
-              storeId: data.storeId,
-              storeName: "Boutique",
-              rating: 0,
-              reviewCount: 0,
-              stock: data.quantity || 0,
-              status: data.status
-            });
+            productsData.push(toProduct(productDoc.id, data));
           }
         }
         console.log("Fetched favorite products:", productsData);
         setProducts(productsData);
+        await applyStoreNames(productsData);
         setIsDisplayingSuggestions(false);
       } catch (error) {
         console.error("Error fetching favorite products:", error);
@@ -186,7 +174,16 @@ export default function FavoritesPage() {
                     >
                       {p.name}
                     </Link>
-                    <p className="text-xs text-neutral-500">{p.storeName}</p>
+                    {p.storeId ? (
+                      <Link
+                        href={`/store/${p.storeId}`}
+                        className="text-xs text-neutral-500 hover:text-wcom-orange hover:underline"
+                      >
+                        {p.storeName}
+                      </Link>
+                    ) : (
+                      <p className="text-xs text-neutral-500">{p.storeName}</p>
+                    )}
                     <p className="mt-1 text-base font-black text-wcom-orange">
                       {formatXOF(p.price || 0)}
                     </p>

@@ -53,7 +53,13 @@ export default function CheckoutPage() {
       });
       
       const data = await res.json();
+      
+      console.log("📦 Réponse de l'API SaasPay (Mock):", data);
+      
       if (data.paymentUrl) {
+        // En vrai, c'est l'URL externe de paiement SasPay (ex: https://checkout.saspay.me/...)
+        alert("🚀 API SasPay contactée avec succès ! (Mode Simulation)\n\nRedirection vers l'URL de paiement générée par SasPay...");
+        
         // Redirect to the SaasPay hosted checkout page
         window.location.href = data.paymentUrl;
       } else {

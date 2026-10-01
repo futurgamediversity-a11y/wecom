@@ -42,8 +42,8 @@ export default function CheckoutPage() {
   const handleMobilePayment = async () => {
     setIsProcessing(true);
     try {
-      // Call the API route we will create for SaasPay
-      const res = await fetch("/api/saaspay/init", {
+      // Call the API route we will create for GeniusPay
+      const res = await fetch("/api/geniuspay/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -54,11 +54,11 @@ export default function CheckoutPage() {
       
       const data = await res.json();
       
-      console.log("📦 Réponse de l'API SaasPay (Mock):", data);
+      console.log("📦 Réponse de l'API GeniusPay (Mock):", data);
       
       if (data.paymentUrl) {
-        // En vrai, c'est l'URL externe de paiement SasPay (ex: https://checkout.saspay.me/...)
-        alert("🚀 API SasPay contactée avec succès ! (Mode Simulation)\n\nRedirection vers l'URL de paiement générée par SasPay...");
+        // En vrai, c'est l'URL externe de paiement GeniusPay (ex: https://checkout.geniuspay.com/...)
+        alert("🚀 API GeniusPay contactée avec succès ! (Mode Simulation)\n\nRedirection vers l'URL de paiement générée par GeniusPay...");
         
         // Redirect to the SaasPay hosted checkout page
         window.location.href = data.paymentUrl;

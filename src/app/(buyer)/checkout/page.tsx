@@ -54,16 +54,11 @@ export default function CheckoutPage() {
       
       const data = await res.json();
       
-      console.log("📦 Réponse de l'API GeniusPay (Mock):", data);
-      
       if (data.paymentUrl) {
-        // En vrai, c'est l'URL externe de paiement GeniusPay (ex: https://checkout.geniuspay.com/...)
-        alert("🚀 API GeniusPay contactée avec succès ! (Mode Simulation)\n\nRedirection vers l'URL de paiement générée par GeniusPay...");
-        
-        // Redirect to the SaasPay hosted checkout page
+        // Redirection réelle vers GeniusPay
         window.location.href = data.paymentUrl;
       } else {
-        alert("Erreur lors de l'initialisation du paiement.");
+        alert(data.error || "Erreur lors de l'initialisation du paiement avec GeniusPay.");
         setIsProcessing(false);
       }
     } catch (err) {

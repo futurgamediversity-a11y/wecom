@@ -5,39 +5,52 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { amount } = body;
 
-    // Clés que tu devras configurer dans ton fichier .env / Vercel :
-    const siteId = process.env.GENIUSPAY_SITE_ID;
-    const apiKey = process.env.GENIUSPAY_API_KEY;
-    const webhookSecret = process.env.GENIUSPAY_WEBHOOK_SECRET; // Pour vérifier les retours de GeniusPay
+    // Récupération de tes clés GeniusPay depuis l'environnement
+    const apiKey = process.env.GENIUSPAY_API_KEY;       // Clé publique (ex: pk_live_...)
+    const apiSecret = process.env.GENIUSPAY_API_SECRET; // Clé secrète (ex: sk_live_...)
     
-    // Exemple d'appel en production (selon la documentation GeniusPay) :
-    // const response = await fetch("https://api.geniuspay.com/v1/payments", {
-    //   method: "POST",
-    //   headers: {
-    //     "Authorization": `Bearer ${apiKey}`,
-    //     "Content-Type": "application/json"
-    //   },
-    //   body: JSON.stringify({
-    //     site_id: siteId,
-    //     amount: amount,
-    //     currency: "XOF",
-    //     return_url: "https://votre-site.com/orders?success=1",
-    //     cancel_url: "https://votre-site.com/checkout",
-    //     notify_url: "https://votre-site.com/api/geniuspay/webhook", // L'URL de ton Webhook
-    //     metadata: { source: "W-COM" }
-    //   })
-    // });
-    // const data = await response.json();
-    
-    if (!apiKey || !siteId) {
-      console.warn("⚠️ GENIUSPAY_API_KEY ou GENIUSPAY_SITE_ID manquant. Mode simulation activé.");
+    if (!apiKey || !apiSecret) {
+      return NextResponse.json(
+        { error: "Veuillez configurer GENIUSPAY_API_KEY et GENIUSPAY_API_SECRET dans Vercel." },
+        { status: 500 }
+      );
     }
 
-    // Redirection factice vers la page de succès pour la simulation
-    // En réel, tu retournerais `data.payment_url`
-    return NextResponse.json({ 
-      paymentUrl: "/orders?success=1&method=geniuspay" 
+    // Appel REEL à l'API de GeniusPay pour initialiser le paiement
+    const response = await fetch("https://pay.genius.ci/api/v1/merchant/payments", {
+      method: "POST",
+      headers: {
+        "X-API-Key": apiKey,
+        "X-API-Secret": apiSecret,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        amount: amount,
+        description: "Commande sur W-COM"
+      })
     });
+    
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      console.error("Erreur de l'API GeniusPay:", errData);
+      return NextResponse.json(
+        { error: "Refus de GeniusPay, vérifiez vos clés API." },
+        { status: 500 }
+      );
+    }
+
+    const data = await response.json();
+    
+    // GeniusPay retourne normalement une 'checkout_url' pour la page de paiement
+    if (data && data.checkout_url) {
+      return NextResponse.json({ paymentUrl: data.checkout_url });
+    } else {
+      console.error("Pas de checkout_url retournée:", data);
+      return NextResponse.json(
+        { error: "Erreur lors de la création du lien de paiement." },
+        { status: 500 }
+      );
+    }
     
   } catch (error) {
     console.error("Erreur GeniusPay:", error);

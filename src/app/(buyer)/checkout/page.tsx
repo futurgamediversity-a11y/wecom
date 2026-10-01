@@ -42,7 +42,6 @@ export default function CheckoutPage() {
   const handleMobilePayment = async () => {
     setIsProcessing(true);
     try {
-      // Call the API route we will create for GeniusPay
       const res = await fetch("/api/geniuspay/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -51,18 +50,22 @@ export default function CheckoutPage() {
           // Normally you pass orderId, user email, phone, etc.
         }),
       });
-      
-      const data = await res.json();
-      
-      if (data.paymentUrl) {
-        // Redirection réelle vers GeniusPay
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && typeof data.paymentUrl === "string") {
         window.location.href = data.paymentUrl;
       } else {
-        alert(data.error || "Erreur lors de l'initialisation du paiement avec GeniusPay.");
+        alert(
+          typeof data.error === "string"
+            ? data.error
+            : "Erreur lors de l'initialisation du paiement avec GeniusPay."
+        );
         setIsProcessing(false);
       }
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error("Erreur de connexion à GeniusPay:", error);
+      alert("Impossible de contacter GeniusPay. Vérifiez votre connexion puis réessayez.");
       setIsProcessing(false);
     }
   };
@@ -212,6 +215,7 @@ export default function CheckoutPage() {
             
             <div className="space-y-3">
               <Button 
+                type="button"
                 onClick={handleCashOnDelivery} 
                 variant="outline" 
                 size="md" 
@@ -222,6 +226,7 @@ export default function CheckoutPage() {
               </Button>
               
               <Button 
+                type="button"
                 onClick={handleMobilePayment} 
                 disabled={isProcessing}
                 variant="primary" 
@@ -236,6 +241,7 @@ export default function CheckoutPage() {
             </div>
             
             <button 
+              type="button"
               onClick={() => setIsModalOpen(false)}
               className="mt-6 w-full py-2 text-sm font-semibold text-neutral-500 hover:text-neutral-800"
             >

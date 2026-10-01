@@ -5,18 +5,23 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { amount } = body;
 
-    // Récupération de tes clés GeniusPay depuis l'environnement
-    const apiKey = process.env.GENIUSPAY_API_KEY;       // Clé publique (ex: pk_live_...)
-    const apiSecret = process.env.GENIUSPAY_API_SECRET; // Clé secrète (ex: sk_live_...)
-    
-    if (!apiKey || !apiSecret) {
+    if (typeof amount !== "number" || !Number.isFinite(amount) || amount < 200) {
       return NextResponse.json(
-        { error: "Veuillez configurer GENIUSPAY_API_KEY et GENIUSPAY_API_SECRET dans Vercel." },
-        { status: 500 }
+        { error: "Le montant doit être un nombre d'au moins 200 XOF." },
+        { status: 400 }
       );
     }
 
-    // Appel REEL à l'API de GeniusPay pour initialiser le paiement
+    const apiKey = process.env.GENIUSPAY_API_KEY;
+    const apiSecret = process.env.GENIUSPAY_API_SECRET;
+    
+    if (!apiKey || !apiSecret) {
+      return NextResponse.json(
+        { error: "Le paiement est indisponible : les identifiants GeniusPay ne sont pas configurés." },
+        { status: 503 }
+      );
+    }
+
     const response = await fetch("https://pay.genius.ci/api/v1/merchant/payments", {
       method: "POST",
       headers: {
@@ -29,28 +34,53 @@ export async function POST(req: Request) {
         description: "Commande sur W-COM"
       })
     });
-    
+
+    const responseBody: unknown = await response.json().catch(() => null);
+
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      console.error("Erreur de l'API GeniusPay:", errData);
+      const errorMessage =
+        typeof responseBody === "object" && responseBody !== null &&
+        "error" in responseBody && typeof responseBody.error === "object" &&
+        responseBody.error !== null && "message" in responseBody.error &&
+        typeof responseBody.error.message === "string"
+          ? responseBody.error.message
+          : `GeniusPay a répondu avec le statut ${response.status}.`;
+      console.error("Erreur de l'API GeniusPay:", response.status, errorMessage);
       return NextResponse.json(
-        { error: "Refus de GeniusPay, vérifiez vos clés API." },
-        { status: 500 }
+        { error: errorMessage },
+        { status: 502 }
       );
     }
 
-    const data = await response.json();
-    
-    // GeniusPay retourne normalement une 'checkout_url' pour la page de paiement
-    if (data && data.checkout_url) {
-      return NextResponse.json({ paymentUrl: data.checkout_url });
-    } else {
-      console.error("Pas de checkout_url retournée:", data);
-      return NextResponse.json(
-        { error: "Erreur lors de la création du lien de paiement." },
-        { status: 500 }
-      );
+    const paymentData =
+      typeof responseBody === "object" && responseBody !== null && "data" in responseBody
+        ? responseBody.data
+        : null;
+    const paymentUrl =
+      typeof paymentData === "object" && paymentData !== null && "checkout_url" in paymentData
+        ? paymentData.checkout_url
+        : null;
+
+    if (typeof paymentUrl === "string") {
+      try {
+        if (new URL(paymentUrl).protocol === "https:") {
+          return NextResponse.json({ paymentUrl });
+        }
+      } catch {
+        // Treat malformed payment URLs as an invalid GeniusPay response.
+      }
     }
+
+    if (!paymentUrl) {
+      console.error("Réponse GeniusPay sans data.checkout_url:", responseBody);
+    } else {
+      console.error("URL GeniusPay invalide:", paymentUrl);
+    }
+
+    return NextResponse.json(
+      { error: "GeniusPay n'a pas retourné de lien de paiement valide." },
+      { status: 502 }
+    );
     
   } catch (error) {
     console.error("Erreur GeniusPay:", error);

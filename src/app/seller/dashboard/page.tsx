@@ -16,6 +16,7 @@ import {
   Search,
 } from "lucide-react";
 import { WComLogo } from "@/components/brand/wcom-logo";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 import { findStoreIdByOwner } from "@/lib/store";
@@ -99,6 +100,7 @@ export default function SellerDashboardPage() {
   // that `isStoreOwner` could not resolve, so every save was denied.
   const [storeId, setStoreId] = useState<string | null>(null);
   const [storeLookupDone, setStoreLookupDone] = useState(false);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
 
   useEffect(() => {
     if (!user) return;
@@ -115,8 +117,12 @@ export default function SellerDashboardPage() {
 
   // Load seller products
   useEffect(() => {
-    if (!user || !storeId) return;
+    if (!user || !storeId) {
+      if (storeLookupDone) setIsLoadingProducts(false); // No store = no products to load
+      return;
+    }
     const fetchProducts = async () => {
+      setIsLoadingProducts(true);
       try {
         const q = query(
           collection(db, "products"),
@@ -145,10 +151,12 @@ export default function SellerDashboardPage() {
         setProducts(items);
       } catch (e) {
         console.error("Error fetching seller products:", e);
+      } finally {
+        setIsLoadingProducts(false);
       }
     };
     fetchProducts();
-  }, [user, storeId, successMsg]);
+  }, [user, storeId, successMsg, storeLookupDone]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -259,9 +267,9 @@ export default function SellerDashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50">
+    <main className="min-h-screen bg-neutral-50 flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white px-8 py-4">
+      <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white px-8 py-4 animate-in fade-in slide-in-from-top-4 duration-700">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
             <WComLogo size="sm" />
@@ -274,18 +282,23 @@ export default function SellerDashboardPage() {
               <span className="text-sm text-neutral-500">{user.email}</span>
             )}
             <Link
-              href="/role"
-              className="flex items-center gap-1 rounded-sm border border-neutral-200 px-3 py-2 text-sm font-semibold text-neutral-600 hover:border-neutral-300 hover:text-wcom-green"
+              href="/seller-setup"
+              className="flex items-center gap-1 rounded-sm border border-neutral-200 px-3 py-2 text-sm font-semibold text-neutral-600 hover:border-neutral-300 hover:text-wcom-green transition-colors"
             >
               <LogOut className="h-4 w-4" />
-              Changer de rôle
+              Changer d'espace
             </Link>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-8 py-8">
-        {/* Success / Error banners */}
+      {loading || isLoadingProducts ? (
+        <div className="flex-1 flex items-center justify-center">
+          <LoadingSpinner />
+        </div>
+      ) : (
+        <div className="mx-auto max-w-7xl w-full px-8 py-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          {/* Success / Error banners */}
         {successMsg && (
           <div className="mb-6 flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-5 py-3 text-sm font-semibold text-green-700">
             <CheckCircle2 className="h-5 w-5" />
@@ -445,7 +458,7 @@ export default function SellerDashboardPage() {
             </div>
           )}
         </div>
-      </div>
+      )}
 
       {/* Add product modal */}
       {showForm && (

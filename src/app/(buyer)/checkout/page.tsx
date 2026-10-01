@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Phone, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { type Product } from "@/lib/types";
+import { useAuth } from "@/lib/auth-context";
 import { formatXOF } from "@/lib/format";
 
 const communes = [
@@ -25,7 +24,7 @@ const communes = [
  */
 export default function CheckoutPage() {
   const router = useRouter();
-  const items: (Product & { quantity: number })[] = [];
+  const { cartItems: items } = useAuth();
   const total = items.reduce((acc, i) => acc + (i.price || 0) * i.quantity, 0);
   const delivery = 1500;
   const [commune, setCommune] = useState(communes[0]);

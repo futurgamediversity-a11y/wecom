@@ -23,8 +23,7 @@ const COMMUNES = ["Cocody", "Marcory", "Yopougon", "Plateau", "Treichville", "Bi
 const PAYMENTS = ["wave", "om", "momo", "moov", "card"];
 const NAV = [
   { href: "/shop", label: "Boutique" },
-  { href: "/role", label: "Vendre" },
-  { href: "/workspace", label: "Espace de travail" },
+  { href: "/seller-setup", label: "Vendre & Services" },
   { href: "/livreur", label: "Livraison" },
 ];
 
@@ -165,7 +164,7 @@ export default function HomePage() {
                 Acheter maintenant <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
               </Link>
               <Link
-                href="/role"
+                href="/seller-setup"
                 className="inline-flex h-11 items-center rounded-xl border border-white/20 px-[18px] text-sm font-bold text-white transition hover:border-wcom-green hover:bg-wcom-green/20"
               >
                 Vendre sur W-COM
@@ -203,7 +202,7 @@ export default function HomePage() {
           </div>
           <div className="relative">
             <h2 className="font-black leading-[.95] tracking-[-.03em]" style={{ fontSize: "clamp(28px, calc(2vw + 2vh), 56px)" }}>
-              Produits &amp; Services
+              Articles et Services
             </h2>
             <p className="mt-2.5 max-w-[38ch] font-semibold leading-snug text-wcom-dark" style={{ fontSize: "clamp(13px,1.7vh,16px)" }}>
               Explorez le marché ivoirien et saisissez les meilleures opportunités.
@@ -213,7 +212,7 @@ export default function HomePage() {
 
         {/* Boutique & Espace de travail */}
         <Link
-          href="/role"
+          href="/seller-setup"
           className="relative col-start-2 row-start-2 flex flex-col justify-between overflow-hidden rounded-xl bg-wcom-green text-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-18px_rgba(0,150,57,.7)]"
           style={{ padding: "clamp(18px,2.8vh,26px)", ...rise(0.2) }}
         >
@@ -300,7 +299,7 @@ export default function HomePage() {
 
         {/* Outils pour vendeurs */}
         <Link
-          href="/seller/dashboard"
+          href="/seller-setup"
           className="relative col-start-3 row-start-3 flex flex-col justify-between overflow-hidden rounded-xl border border-neutral-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-wcom-orange"
           style={{ padding: "clamp(14px,2.2vh,22px)", ...rise(0.44) }}
         >

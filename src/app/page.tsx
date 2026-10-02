@@ -315,6 +315,18 @@ export default function HomePage() {
           </p>
         </Link>
       </main>
+      
+      <footer className="border-t border-neutral-200 py-8 bg-wcom-offwhite relative z-10">
+        <div className="mx-auto flex max-w-[1300px] flex-col items-center justify-between gap-4 px-[5vw] md:flex-row">
+          <p className="text-sm font-semibold text-neutral-500">
+            &copy; 2026 Futur Game Diversity (FGD). Tous droits réservés.
+          </p>
+          <div className="flex gap-6 text-sm font-bold text-neutral-600">
+            <Link href="/legal/terms" className="hover:text-wcom-orange transition">CGU / CGV</Link>
+            <Link href="/legal/privacy" className="hover:text-wcom-orange transition">Confidentialité</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

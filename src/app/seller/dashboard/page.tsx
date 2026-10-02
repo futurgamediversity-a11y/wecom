@@ -19,7 +19,7 @@ import { WComLogo } from "@/components/brand/wcom-logo";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
-import { findStoreIdByOwner } from "@/lib/store";
+import { findStoreIdByOwner, fetchStoreProfile, type StoreProfile } from "@/lib/store";
 import {
   collection,
   addDoc,
@@ -77,6 +77,7 @@ async function uploadToCloudinary(file: File): Promise<string> {
 export default function SellerDashboardPage() {
   const { user, loading } = useAuth();
   const [products, setProducts] = useState<SellerProduct[]>([]);
+  const [storeProfile, setStoreProfile] = useState<StoreProfile | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -115,21 +116,28 @@ export default function SellerDashboardPage() {
     };
   }, [user]);
 
-  // Load seller products
+  // Load seller products and store profile
   useEffect(() => {
     if (!user || !storeId) {
       if (storeLookupDone) setIsLoadingProducts(false); // No store = no products to load
       return;
     }
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       setIsLoadingProducts(true);
       try {
-        const q = query(
-          collection(db, "products"),
-          where("storeId", "==", storeId),
-          orderBy("createdAt", "desc")
-        );
-        const snap = await getDocs(q);
+        const [profileLookup, snap] = await Promise.all([
+          fetchStoreProfile(storeId),
+          getDocs(
+            query(
+              collection(db, "products"),
+              where("storeId", "==", storeId),
+              orderBy("createdAt", "desc")
+            )
+          )
+        ]);
+
+        setStoreProfile(profileLookup.profile);
+
         const items: SellerProduct[] = snap.docs.map((d) => {
           const data = d.data();
           return {
@@ -150,12 +158,12 @@ export default function SellerDashboardPage() {
         });
         setProducts(items);
       } catch (e) {
-        console.error("Error fetching seller products:", e);
+        console.error("Error fetching seller data:", e);
       } finally {
         setIsLoadingProducts(false);
       }
     };
-    fetchProducts();
+    fetchData();
   }, [user, storeId, successMsg, storeLookupDone]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -298,6 +306,35 @@ export default function SellerDashboardPage() {
         </div>
       ) : (
         <div className="mx-auto max-w-7xl w-full px-8 py-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          
+          {/* Store Banner */}
+          {storeProfile?.banner && (
+            <div className="relative w-full h-48 md:h-64 mb-8 rounded-2xl overflow-hidden shadow-sm">
+              <Image 
+                src={storeProfile.banner} 
+                alt={`Bannière de ${storeProfile.name}`}
+                fill
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-0 left-0 p-6 flex items-end gap-4">
+                {storeProfile.image && (
+                  <div className="relative h-16 w-16 md:h-20 md:w-20 rounded-full border-4 border-white overflow-hidden bg-white">
+                    <Image src={storeProfile.image} alt={storeProfile.name} fill className="object-cover" />
+                  </div>
+                )}
+                <div className="mb-1">
+                  <h2 className="text-2xl md:text-3xl font-black text-white">{storeProfile.name}</h2>
+                  {storeProfile.location && (
+                    <p className="text-white/80 text-sm font-medium flex items-center gap-1">
+                      <span className="opacity-70">📍</span> {storeProfile.location}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Success / Error banners */}
         {successMsg && (
           <div className="mb-6 flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-5 py-3 text-sm font-semibold text-green-700">

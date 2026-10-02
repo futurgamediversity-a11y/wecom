@@ -56,7 +56,7 @@ export default function RegisterPage() {
     setErr(null);
     try {
       await signInWithGoogle();
-      window.location.href = "/role";
+      window.location.href = "/seller-setup";
     } catch (error: any) {
       console.error("Google sign up error:", error);
       setErr(messageFor(error));
@@ -91,7 +91,7 @@ export default function RegisterPage() {
       }
       
       // Redirect to role page
-      window.location.href = "/role";
+      window.location.href = "/seller-setup";
     } catch (error: any) {
       console.error("Registration error:", error);
       setErr(messageFor(error));

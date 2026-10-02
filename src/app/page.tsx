@@ -56,7 +56,7 @@ export default function HomePage() {
 
   return (
     <div
-      className="grid h-screen w-screen grid-rows-[56px_minmax(0,1fr)] gap-[14px] overflow-hidden bg-wcom-offwhite bg-dots-green px-[18px] pb-[18px] pt-[14px] text-wcom-ink"
+      className="flex min-h-screen w-full flex-col gap-4 overflow-x-hidden bg-wcom-offwhite bg-dots-green p-4 md:grid md:h-screen md:grid-rows-[56px_minmax(0,1fr)] md:p-[18px] text-wcom-ink"
       style={{ backgroundImage: "radial-gradient(circle, rgba(0,150,57,.10) 1.5px, transparent 1.5px)" }}
     >
       {/* Header */}
@@ -76,7 +76,7 @@ export default function HomePage() {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-0.5 rounded-xl border border-neutral-200 bg-white p-1">
+        <nav className="hidden items-center gap-0.5 rounded-xl border border-neutral-200 bg-white p-1 md:flex">
           {NAV.map((n) => (
             <Link
               key={n.href}
@@ -91,7 +91,7 @@ export default function HomePage() {
         <div className="flex items-center gap-2">
           <Link
             href="/login"
-            className="inline-flex h-10 items-center rounded-[10px] px-4 text-sm font-bold transition-colors hover:bg-neutral-100"
+            className="hidden h-10 items-center rounded-[10px] px-4 text-sm font-bold transition-colors hover:bg-neutral-100 md:inline-flex"
           >
             Se connecter
           </Link>
@@ -99,17 +99,17 @@ export default function HomePage() {
             href="/register"
             className="inline-flex h-10 items-center rounded-[10px] bg-wcom-ink px-[18px] text-sm font-bold text-white transition hover:-translate-y-px hover:bg-wcom-orange"
           >
-            Créer un compte
+            S'inscrire
           </Link>
         </div>
       </header>
 
       {/* Bento grid */}
-      <main className="grid min-h-0 grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] grid-rows-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,.78fr)] gap-3">
+      <main className="grid min-h-0 flex-1 grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] md:grid-rows-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,.78fr)] pb-6 md:pb-0">
         {/* Hero */}
         <section
           onMouseMove={onHeroMove}
-          className="relative col-start-1 row-span-3 row-start-1 flex flex-col overflow-hidden rounded-xl bg-wcom-dark text-white"
+          className="relative flex min-h-[420px] flex-col overflow-hidden rounded-xl bg-wcom-dark text-white md:col-start-1 md:row-span-3 md:row-start-1"
           style={{ padding: "clamp(22px,3.6vh,40px)", ...rise(0.05) }}
         >
           <div className="pointer-events-none absolute inset-0 bg-dots-orange" style={{ backgroundImage: "radial-gradient(circle, rgba(255,130,0,.16) 1.5px, transparent 1.5px)" }} />
@@ -145,34 +145,34 @@ export default function HomePage() {
 
           <Link
             href="/shop"
-            className="relative flex h-[52px] max-w-[460px] items-center gap-2.5 rounded-[14px] bg-white pl-4 pr-1.5 text-sm font-medium text-neutral-500 shadow-[0_10px_30px_rgba(0,0,0,.25)] transition hover:-translate-y-px hover:shadow-[0_0_0_4px_rgba(255,130,0,.35),0_10px_30px_rgba(0,0,0,.25)]"
+            className="relative flex h-[52px] max-w-[460px] w-full items-center gap-2.5 rounded-[14px] bg-white pl-4 pr-1.5 text-sm font-medium text-neutral-500 shadow-[0_10px_30px_rgba(0,0,0,.25)] transition hover:-translate-y-px hover:shadow-[0_0_0_4px_rgba(255,130,0,.35),0_10px_30px_rgba(0,0,0,.25)]"
             style={{ marginTop: "clamp(16px,3vh,28px)" }}
           >
-            <Search className="h-[18px] w-[18px]" />
-            <span className="flex-1">Rechercher un produit, une boutique…</span>
-            <span className="inline-flex h-10 items-center rounded-[10px] bg-wcom-orange px-4 text-[13px] font-extrabold text-white">
+            <Search className="h-[18px] w-[18px] shrink-0" />
+            <span className="flex-1 truncate">Rechercher un produit...</span>
+            <span className="inline-flex h-10 shrink-0 items-center rounded-[10px] bg-wcom-orange px-4 text-[13px] font-extrabold text-white">
               Explorer
             </span>
           </Link>
 
-          <div className="relative mt-auto flex items-end justify-between gap-4">
+          <div className="relative mt-auto pt-6 flex items-end justify-between gap-4">
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/shop"
                 className="inline-flex h-11 items-center gap-2 rounded-xl bg-wcom-orange px-[18px] text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:shadow-glow"
               >
-                Acheter maintenant <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+                Acheter <ArrowRight className="h-4 w-4 hidden md:block" strokeWidth={2.5} />
               </Link>
               <Link
                 href="/seller-setup"
                 className="inline-flex h-11 items-center rounded-xl border border-white/20 px-[18px] text-sm font-bold text-white transition hover:border-wcom-green hover:bg-wcom-green/20"
               >
-                Vendre sur W-COM
+                Vendre
               </Link>
             </div>
 
             <div
-              className="relative mb-1.5 mr-1.5 shrink-0"
+              className="relative shrink-0 hidden md:block mb-1.5 mr-1.5"
               style={{ width: "clamp(96px,14vh,150px)", height: "clamp(96px,14vh,150px)", animation: "wcom-floaty 6s ease-in-out infinite" }}
             >
               <div className="absolute inset-0 rounded-[22px] bg-wcom-green" style={{ transform: "translate(10px,12px)" }} />
@@ -188,10 +188,10 @@ export default function HomePage() {
         {/* Produits & Services */}
         <Link
           href="/shop"
-          className="relative col-span-2 col-start-2 row-start-1 flex flex-col justify-between overflow-hidden rounded-xl bg-wcom-orange text-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-18px_rgba(255,130,0,.7)]"
+          className="relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-xl bg-wcom-orange text-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-18px_rgba(255,130,0,.7)] md:col-span-2 md:col-start-2 md:row-start-1"
           style={{ padding: "clamp(18px,3vh,30px)", ...rise(0.12) }}
         >
-          <ShoppingBag className="absolute -bottom-[18%] -right-[4%] h-auto w-[52%] -rotate-12 opacity-[.16]" strokeWidth={1.5} />
+          <ShoppingBag className="absolute -bottom-[18%] -right-[4%] h-auto w-[52%] max-w-[200px] -rotate-12 opacity-[.16]" strokeWidth={1.5} />
           <div className="relative flex items-start justify-between">
             <span className="grid h-12 w-12 place-items-center rounded-[14px] bg-white/20">
               <ShoppingBag className="h-6 w-6" strokeWidth={2.5} />
@@ -200,7 +200,7 @@ export default function HomePage() {
               <ArrowUpRight className="h-5 w-5 text-wcom-orange" strokeWidth={2.5} />
             </span>
           </div>
-          <div className="relative">
+          <div className="relative mt-8 md:mt-0">
             <h2 className="font-black leading-[.95] tracking-[-.03em]" style={{ fontSize: "clamp(28px, calc(2vw + 2vh), 56px)" }}>
               Articles et Services
             </h2>
@@ -213,7 +213,7 @@ export default function HomePage() {
         {/* Boutique & Espace de travail */}
         <Link
           href="/seller-setup"
-          className="relative col-start-2 row-start-2 flex flex-col justify-between overflow-hidden rounded-xl bg-wcom-green text-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-18px_rgba(0,150,57,.7)]"
+          className="relative flex min-h-[200px] flex-col justify-between overflow-hidden rounded-xl bg-wcom-green text-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-18px_rgba(0,150,57,.7)] md:col-start-2 md:row-start-2"
           style={{ padding: "clamp(18px,2.8vh,26px)", ...rise(0.2) }}
         >
           <div className="flex items-start justify-between">
@@ -224,7 +224,7 @@ export default function HomePage() {
               <ArrowUpRight className="h-4 w-4 text-wcom-green" strokeWidth={2.5} />
             </span>
           </div>
-          <div>
+          <div className="mt-8 md:mt-0">
             <h3 className="font-black leading-none tracking-[-.025em]" style={{ fontSize: "clamp(20px, calc(1.1vw + 1.4vh), 32px)" }}>
               Boutique &amp; Espace de travail
             </h3>
@@ -237,7 +237,7 @@ export default function HomePage() {
         {/* Livraison */}
         <Link
           href="/livreur"
-          className="relative col-start-3 row-start-2 flex flex-col justify-between overflow-hidden rounded-xl bg-wcom-surface text-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-18px_rgba(9,10,15,.6)]"
+          className="relative flex min-h-[200px] flex-col justify-between overflow-hidden rounded-xl bg-wcom-surface text-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-18px_rgba(9,10,15,.6)] md:col-start-3 md:row-start-2"
           style={{ padding: "clamp(18px,2.8vh,26px)", ...rise(0.28) }}
         >
           <div className="flex items-center justify-between">
@@ -249,7 +249,7 @@ export default function HomePage() {
               En route
             </span>
           </div>
-          <div>
+          <div className="mt-8 md:mt-0">
             <div
               className="mb-3 h-[3px] rounded-[3px] opacity-80"
               style={{
@@ -272,7 +272,7 @@ export default function HomePage() {
 
         {/* Achat sécurisé */}
         <div
-          className="relative col-start-2 row-start-3 flex flex-col justify-between overflow-hidden rounded-xl border border-neutral-200 bg-white"
+          className="relative flex min-h-[140px] flex-col justify-between overflow-hidden rounded-xl border border-neutral-200 bg-white md:col-start-2 md:row-start-3"
           style={{ padding: "clamp(14px,2.2vh,22px) 0", ...rise(0.36) }}
         >
           <div className="flex items-center gap-2.5" style={{ padding: "0 clamp(16px,2.2vh,22px)" }}>
@@ -280,7 +280,7 @@ export default function HomePage() {
             <span className="text-[15px] font-extrabold">Achat sécurisé</span>
           </div>
           <div
-            className="relative overflow-hidden"
+            className="relative overflow-hidden mt-6 md:mt-0"
             style={{
               WebkitMaskImage: "linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)",
               maskImage: "linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)",
@@ -300,7 +300,7 @@ export default function HomePage() {
         {/* Outils pour vendeurs */}
         <Link
           href="/seller-setup"
-          className="relative col-start-3 row-start-3 flex flex-col justify-between overflow-hidden rounded-xl border border-neutral-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-wcom-orange"
+          className="relative flex min-h-[140px] flex-col justify-between overflow-hidden rounded-xl border border-neutral-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-wcom-orange md:col-start-3 md:row-start-3"
           style={{ padding: "clamp(14px,2.2vh,22px)", ...rise(0.44) }}
         >
           <div className="flex items-center justify-between">
@@ -310,7 +310,7 @@ export default function HomePage() {
             </span>
             <ArrowUpRight className="h-[18px] w-[18px]" strokeWidth={2.2} />
           </div>
-          <p className="font-medium leading-snug text-neutral-600" style={{ fontSize: "clamp(12px,1.5vh,14px)" }}>
+          <p className="mt-4 md:mt-0 font-medium leading-snug text-neutral-600" style={{ fontSize: "clamp(12px,1.5vh,14px)" }}>
             Boutique, statistiques, marketing et AI assistant intégré.
           </p>
         </Link>

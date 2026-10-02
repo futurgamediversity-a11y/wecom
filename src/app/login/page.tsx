@@ -29,10 +29,10 @@ export default function LoginPage() {
    * paths are accepted, so the parameter cannot be used as an open redirect.
    */
   function destination() {
-    if (typeof window === "undefined") return "/role";
+    if (typeof window === "undefined") return "/seller-setup";
     const next = new URLSearchParams(window.location.search).get("next");
     if (next && next.startsWith("/") && !next.startsWith("//")) return next;
-    return "/role";
+    return "/seller-setup";
   }
 
   function messageFor(error: { code?: string; message?: string }) {

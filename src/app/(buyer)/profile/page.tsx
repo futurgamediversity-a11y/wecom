@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/lib/auth-context";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -36,8 +37,8 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-8">
-        <p>Chargement...</p>
+      <main className="mx-auto flex min-h-64 max-w-3xl items-center px-6 py-8">
+        <LoadingSpinner />
       </main>
     );
   }

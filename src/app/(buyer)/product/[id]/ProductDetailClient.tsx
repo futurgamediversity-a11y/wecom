@@ -17,6 +17,7 @@ import {
 import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { LoadingCircle, LoadingSpinner } from "@/components/ui/loading-spinner";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
@@ -30,6 +31,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
   const [qty, setQty] = useState(1);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [addedToCart, setAddedToCart] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
   const [storeData, setStoreData] = useState<{ name: string; image: string } | null>(null);
   const router = useRouter();
   const { favorites, toggleFavorite, user, addToCart } = useAuth();
@@ -41,17 +43,22 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
   const handleAddToCart = useCallback(async () => {
     if (!product) return;
-    await addToCart({
-      productId: product.id,
-      name: product.name ?? "",
-      price: product.price ?? 0,
-      quantity: qty,
-      imageUrl: (product.images && product.images[0]) ?? (product.imageUrl ?? "/images/app_icon.png"),
-      storeId: product.storeId ?? "",
-      selectedVariants,
-    });
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2500);
+    setAddingToCart(true);
+    try {
+      await addToCart({
+        productId: product.id,
+        name: product.name ?? "",
+        price: product.price ?? 0,
+        quantity: qty,
+        imageUrl: (product.images && product.images[0]) ?? (product.imageUrl ?? "/images/app_icon.png"),
+        storeId: product.storeId ?? "",
+        selectedVariants,
+      });
+      setAddedToCart(true);
+      setTimeout(() => setAddedToCart(false), 2500);
+    } finally {
+      setAddingToCart(false);
+    }
   }, [product, qty, selectedVariants, addToCart]);
 
   useEffect(() => {
@@ -92,7 +99,11 @@ export default function ProductDetailClient({ id }: { id: string }) {
   }, [id]);
 
   if (loading) {
-    return <main className="mx-auto max-w-7xl px-6 py-8">Chargement...</main>;
+    return (
+      <main className="mx-auto flex min-h-64 max-w-7xl items-center px-6 py-8">
+        <LoadingSpinner />
+      </main>
+    );
   }
 
   if (!product) {
@@ -246,10 +257,12 @@ export default function ProductDetailClient({ id }: { id: string }) {
                   ? handleAddToCart
                   : () => router.push(`/login?next=${encodeURIComponent(`/product/${id}`)}`)
               }
-              disabled={addedToCart}
+              disabled={addingToCart || addedToCart}
               className="flex flex-1 items-center justify-center gap-2 rounded-sm bg-wcom-orange px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-amber-600 disabled:opacity-70"
             >
-              {addedToCart ? (
+              {addingToCart ? (
+                <><LoadingCircle /> Ajout au panier...</>
+              ) : addedToCart ? (
                 <><CheckCircle2 className="h-4 w-4" /> Ajouté !</>
               ) : (
                 <><ShoppingBag className="h-4 w-4" /> {user ? "Ajouter au panier" : "Connectez-vous d'abord"}</>

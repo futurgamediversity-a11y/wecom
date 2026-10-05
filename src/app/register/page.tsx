@@ -7,6 +7,7 @@ import { Mail, Lock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { LoadingCircle } from "@/components/ui/loading-spinner";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
@@ -23,6 +24,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<"email" | "google" | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   function messageFor(error: { code?: string; message?: string }) {
@@ -53,6 +55,7 @@ export default function RegisterPage() {
    */
   async function handleGoogleSignUp() {
     setLoading(true);
+    setLoadingAction("google");
     setErr(null);
     try {
       await signInWithGoogle();
@@ -61,6 +64,7 @@ export default function RegisterPage() {
       console.error("Google sign up error:", error);
       setErr(messageFor(error));
       setLoading(false);
+      setLoadingAction(null);
     }
   }
 
@@ -72,6 +76,7 @@ export default function RegisterPage() {
       return;
     }
     setLoading(true);
+    setLoadingAction("email");
     
     try {
       // Create user with Firebase Auth
@@ -96,6 +101,7 @@ export default function RegisterPage() {
       console.error("Registration error:", error);
       setErr(messageFor(error));
       setLoading(false);
+      setLoadingAction(null);
     }
   }
 
@@ -192,7 +198,8 @@ export default function RegisterPage() {
               className="w-full"
               disabled={loading}
             >
-              {loading ? "Création…" : "Créer mon compte"}
+              {loadingAction === "email" ? <LoadingCircle /> : null}
+              {loading ? (loadingAction === "email" ? "Création…" : "Créer mon compte") : "Créer mon compte"}
             </Button>
           </form>
 
@@ -212,6 +219,7 @@ export default function RegisterPage() {
             disabled={loading}
           >
             <span className="text-blue-500 text-lg font-black">G</span>
+            {loadingAction === "google" ? <LoadingCircle /> : null}
             S&apos;inscrire avec Google
           </Button>
 

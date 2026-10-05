@@ -20,6 +20,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { toProduct, STORE_FALLBACK_IMAGE } from "@/lib/firestore-schema";
 import { fetchStoreProfile, type StoreProfile } from "@/lib/store";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 function StoreContent({ storeId }: { storeId: string }) {
   const [storeData, setStoreData] = useState<StoreProfile | null>(null);
@@ -70,10 +71,10 @@ function StoreContent({ storeId }: { storeId: string }) {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-7xl px-6 py-8">
-        <div className="flex items-center gap-2 text-neutral-500">
-          <ArrowLeft className="h-5 w-5 cursor-pointer" onClick={() => router.back()} />
-          <span>Chargement de la boutique...</span>
+      <main className="mx-auto flex min-h-64 max-w-7xl items-center px-6 py-8">
+        <div className="flex w-full items-center gap-3">
+          <ArrowLeft className="h-5 w-5 cursor-pointer text-neutral-500" onClick={() => router.back()} />
+          <LoadingSpinner />
         </div>
       </main>
     );
@@ -221,7 +222,7 @@ function StoreContent({ storeId }: { storeId: string }) {
 
 export default function StorePage({ params }: { params: Promise<{ storeId: string }> }) {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-7xl px-6 py-8">Chargement de la boutique...</div>}>
+    <Suspense fallback={<div className="mx-auto flex min-h-64 max-w-7xl items-center px-6 py-8"><LoadingSpinner /></div>}>
       <StoreLoader params={params} />
     </Suspense>
   );

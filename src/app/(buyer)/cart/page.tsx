@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Trash2, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formatXOF } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
 
@@ -16,8 +17,8 @@ export default function CartPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto flex max-w-3xl flex-col items-center px-6 py-24 text-center">
-        <p className="text-neutral-500">Chargement...</p>
+      <main className="mx-auto flex min-h-64 max-w-3xl items-center px-6 py-12">
+        <LoadingSpinner />
       </main>
     );
   }

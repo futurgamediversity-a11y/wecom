@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { Heart, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
@@ -106,8 +107,8 @@ export default function FavoritesPage() {
 
   if (loading || productsLoading) {
     return (
-      <main className="mx-auto max-w-7xl px-6 py-8">
-        <p>Chargement...</p>
+      <main className="mx-auto flex min-h-64 max-w-7xl items-center px-6 py-8">
+        <LoadingSpinner />
       </main>
     );
   }

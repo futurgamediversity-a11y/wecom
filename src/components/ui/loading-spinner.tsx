@@ -1,6 +1,11 @@
 "use client";
 
 import { WComLogo } from "@/components/brand/wcom-logo";
+import { LoaderCircle } from "lucide-react";
+
+export function LoadingCircle({ className = "h-4 w-4" }: { className?: string }) {
+  return <LoaderCircle aria-hidden="true" className={`animate-spin ${className}`} />;
+}
 
 export function LoadingSpinner({ fullScreen = false }: { fullScreen?: boolean }) {
   const content = (

@@ -16,7 +16,7 @@ import {
   Search,
 } from "lucide-react";
 import { WComLogo } from "@/components/brand/wcom-logo";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { LoadingCircle, LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 import { findStoreIdByOwner, fetchStoreProfile, type StoreProfile } from "@/lib/store";
@@ -30,6 +30,7 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { formatXOF } from "@/lib/format";
+import { StoreWizard } from "./wizard";
 
 const CATEGORIES = [
   "Mode",
@@ -102,6 +103,7 @@ export default function SellerDashboardPage() {
   const [storeId, setStoreId] = useState<string | null>(null);
   const [storeLookupDone, setStoreLookupDone] = useState(false);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [showWizard, setShowWizard] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -272,6 +274,38 @@ export default function SellerDashboardPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (storeLookupDone && !storeId) {
+    return (
+      <main className="min-h-screen bg-wcom-offwhite flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700">
+        <div className="max-w-md w-full">
+          <div className="h-20 w-20 bg-wcom-green/10 text-wcom-green rounded-full flex items-center justify-center mx-auto mb-6">
+            <ShoppingBag className="h-10 w-10" />
+          </div>
+          <h1 className="text-3xl font-black text-wcom-ink mb-4">Créez votre boutique</h1>
+          <p className="text-neutral-500 font-medium mb-8">
+            Vous n'avez pas encore de boutique. Configurez-la en quelques étapes pour commencer à vendre sur W-COM.
+          </p>
+          <button 
+            onClick={() => setShowWizard(true)}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-wcom-green px-6 py-4 text-sm font-bold text-white shadow-lg shadow-wcom-green/30 transition hover:-translate-y-1 hover:bg-[#007b2f]"
+          >
+            <Plus className="h-5 w-5" /> Créer ma boutique maintenant
+          </button>
+        </div>
+
+        {showWizard && (
+          <StoreWizard 
+            userId={user!.uid} 
+            onComplete={(newStoreId) => {
+              setShowWizard(false);
+              setStoreId(newStoreId);
+            }} 
+          />
+        )}
+      </main>
+    );
   }
 
   return (
@@ -664,7 +698,7 @@ export default function SellerDashboardPage() {
                 >
                   {saving ? (
                     <>
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      <LoadingCircle />
                       Envoi en cours…
                     </>
                   ) : (

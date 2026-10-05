@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { LoadingCircle, LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/lib/auth-context";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -77,8 +78,8 @@ export default function EditProfilePage() {
 
   if (authLoading || loading) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-8">
-        <p>Chargement...</p>
+      <main className="mx-auto flex min-h-64 max-w-2xl items-center px-6 py-8">
+        <LoadingSpinner />
       </main>
     );
   }
@@ -131,6 +132,7 @@ export default function EditProfilePage() {
               Annuler
             </Button>
             <Button type="submit" disabled={saving}>
+              {saving ? <LoadingCircle /> : null}
               {saving ? "Enregistrement..." : "Enregistrer les modifications"}
             </Button>
           </div>

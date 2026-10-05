@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { CheckCircle2, Clock, Truck, XCircle, PackageCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { type OrderStatus } from "@/lib/types";
 import { formatXOF, formatDateFR } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
@@ -147,8 +148,8 @@ export default function OrdersPage() {
 
   if (authLoading || ordersLoading) {
     return (
-      <main className="mx-auto max-w-5xl px-6 py-8">
-        <p>Chargement...</p>
+      <main className="mx-auto flex min-h-64 max-w-5xl items-center px-6 py-8">
+        <LoadingSpinner />
       </main>
     );
   }

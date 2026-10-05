@@ -1,172 +1,82 @@
-<<<<<<< HEAD
-# W-COM Web
+# W-COM (Futur Game Diversity - FGD)
 
-Version web (Next.js) de l'application mobile W-COM, plateforme ivoirienne
-de commerce et d'espaces de travail. Vise un usage **desktop-first** (tout
-en restant utilisable sur tablette/mobile).
+W-COM est une plateforme numérique innovante en Côte d'Ivoire, conçue comme un véritable écosystème de travail. C'est une place de marché hybride qui combine **e-commerce** et **prestations de services** (freelance).
 
-## Stack
+## 🚀 Fonctionnalités Principales
 
-- **Next.js 15** (App Router)
-- **TypeScript**
-- **Tailwind CSS 3**
-- **lucide-react** (icônes)
-- `clsx` + `tailwind-merge` + `class-variance-authority` (variantes UI)
+- **Marketplace e-commerce :** Achat de produits physiques auprès de boutiques locales partenaires.
+- **Espace Freelance & Services :** Proposition et réservation de missions professionnelles.
+- **Paiements Locaux Sécurisés :** Intégration de Mobile Money (Wave, Orange, MTN, Moov) via l'agrégateur **GeniusPay**.
+- **Séquestre Financier :** Les fonds sont bloqués sur un compte sécurisé jusqu'à la livraison et validation du produit (système OTP).
+- **Tableau de Bord Vendeur :** Gestion des produits, des statistiques, et de la marque (bannière, logo).
+- **Interface Mobile First :** Design 100% responsif, fluide et pensé pour les utilisateurs de smartphones.
 
-## Démarrer
+## 🛠 Stack Technique
 
-```bash
-npm install
-npm run dev
-```
+- **Frontend :** Next.js 15 (App Router), React 19, Tailwind CSS, Lucide Icons
+- **Backend & Base de données :** Firebase (Authentication, Firestore, Storage)
+- **Hébergement & Déploiement :** Vercel
+- **Gestion des images :** Cloudinary (via Next.js API Routes)
+- **Paiement :** GeniusPay API
 
-Ouvrir [http://localhost:3000](http://localhost:3000).
+## 📦 Installation et Lancement en local
 
-## Structure
+1. **Cloner le dépôt :**
+   ```bash
+   git clone https://github.com/futurgamediversity-a11y/wecom.git
+   cd wecom
+   ```
 
-```
-src/
-  app/
-    page.tsx               # Landing / welcome (rôle-select hero)
-    login/                 # Connexion
-    register/              # Inscription
-    role/                  # Sélection acheter / vendre après login
-    (buyer)/               # Routes acheteur (top-nav + footer partagés)
-      shop/                # Boutique / accueil acheteur
-      product/[id]/        # Détails produit
-      cart/                # Panier
-      checkout/            # Validation commande
-      payment/             # Choix du paiement
-      orders/              # Mes commandes
-      favorites/           # Favoris
-      profile/             # Profil acheteur
-  components/
-    brand/                 # Logo W-COM
-    site/                  # Top-nav, footer
-    ui/                    # Button, Input, Card
-  lib/
-    cn.ts                  # Utilitaire de classes
-    format.ts              # Format XOF + date FR
-    mock-data.ts           # Données placeholder
-public/
-  images/                  # Logos + visuels paiement (Wave, OM, MoMo, Moov, carte)
-```
+2. **Installer les dépendances :**
+   ```bash
+   npm install
+   ```
 
-## Tokens de design
+3. **Variables d'environnement :**
+   Créez un fichier `.env.local` à la racine et renseignez les clés suivantes :
+   ```env
+   # Firebase Config
+   NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_domain
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 
-Portés depuis `lib/screens/theme_manager.dart` et les écrans Flutter :
+   # Cloudinary
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
 
-- Primaire : `#FF8200` (orange W-COM)
-- Secondaire : `#009639` (vert W-COM)
-- Fond clair : `#FAFAFA`
-- Surface sombre : `#1E202A`
-- Encre : `#090A0F`
+   # GeniusPay
+   GENIUSPAY_API_KEY=your_geniuspay_key
+   GENIUSPAY_API_SECRET=your_geniuspay_secret
 
-## Roadmap
+   # Plans Vendeur (Wcom Vente)
+   NEXT_PUBLIC_PLAN_MONTHLY_PRICE=5000
+   NEXT_PUBLIC_PLAN_ANNUAL_PRICE=50000
+   ```
 
-Cette première phase couvre le tunnel acheteur (12 écrans). Les phases
-suivantes ajoutent :
+4. **Lancer le serveur de développement :**
+   ```bash
+   npm run dev
+   ```
+   L'application sera accessible sur [http://localhost:3000](http://localhost:3000).
 
-- **Phase 2** : tableau de bord vendeur, ajout/édition produit, stock, statistiques.
-- **Phase 3** : workspace / espace entreprise (inscription, dashboard, chat, abonnement).
-- **Phase 4** : livreur, AI assistant (Gemini), admin support, polissage et i18n.
+## 🔒 Architecture et Flux Vendeur (Seller Flow)
 
-## Branches GitLab d'origine
+1. **Accueil (`/`) :** Navigation intuitive, design Bento Grid responsive.
+2. **Choix du rôle (`/seller-setup`) :** Point d'entrée pour les créateurs. Permet de choisir entre *Créer une boutique* ou *Créer un espace de services*.
+3. **Onboarding Boutique (`/seller/dashboard`) :** 
+   - Si aucune boutique n'est détectée : Affichage d'un assistant (Wizard) en popup (flouté) pour configurer la boutique (nom, logo, bannière), ajouter un premier produit, et choisir un plan d'abonnement.
+   - Si la boutique existe : Redirection transparente vers le gestionnaire de produits et statistiques.
 
-- Code Flutter de référence : `git@gitlab.com:futurgamediversity1/W-Com.git` (branche `main`)
-- Cible web : `git@gitlab.com:futurgamediversity1/w-com_web.git`
-=======
-# W-Com-Web
+## 📄 Pages Légales
 
+Les documents officiels de conformité ivoirienne (ARTCI) sont implémentés en tant que pages Markdown statiques :
+- Politique de Confidentialité : `/legal/privacy`
+- Conditions Générales d'Utilisation et de Vente : `/legal/terms`
 
+## 🤝 Contribution
 
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://gitlab.com/futurgamediversity1/w-com-web.git
-git branch -M main
-git push -uf origin main
-```
-
-## Integrate with your tools
-
-* [Set up project integrations](https://gitlab.com/futurgamediversity1/w-com-web/-/settings/integrations)
-
-## Collaborate with your team
-
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
->>>>>>> ab7f71445ce7a6b0f1575210b5fa9b9a7e4f61e4
+Ce projet est maintenu par l'équipe **Futur Game Diversity (FGD)**. Toute modification apportée au code doit respecter l'architecture existante et conserver une expérience utilisateur Mobile-First fluide.

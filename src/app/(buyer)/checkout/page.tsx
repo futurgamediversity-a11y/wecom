@@ -6,6 +6,7 @@ import { MapPin, Phone, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { LoadingCircle } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/lib/auth-context";
 import { formatXOF } from "@/lib/format";
 
@@ -233,6 +234,7 @@ export default function CheckoutPage() {
                 className="w-full justify-between px-4 py-6"
               >
                 <span className="font-bold">
+                  {isProcessing ? <LoadingCircle /> : null}
                   {isProcessing ? "Redirection..." : "Payer par Mobile"}
                 </span>
                 <span className="text-xs opacity-90">Wave, OM, MoMo...</span>

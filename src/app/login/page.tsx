@@ -7,6 +7,7 @@ import { Mail, Lock, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { LoadingCircle } from "@/components/ui/loading-spinner";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<"email" | "google" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const { signInWithGoogle } = useAuth();
 
@@ -59,6 +61,7 @@ export default function LoginPage() {
     e.preventDefault();
     if (!email || !password) return;
     setLoading(true);
+    setLoadingAction("email");
     setErr(null);
 
     try {
@@ -68,11 +71,13 @@ export default function LoginPage() {
       console.error("Login error:", error);
       setErr(messageFor(error));
       setLoading(false);
+      setLoadingAction(null);
     }
   }
 
   async function handleGoogleSignIn() {
     setLoading(true);
+    setLoadingAction("google");
     setErr(null);
     try {
       await signInWithGoogle();
@@ -83,6 +88,7 @@ export default function LoginPage() {
       // when the popup failed, leaving the visitor signed out.
       setErr(messageFor(error));
       setLoading(false);
+      setLoadingAction(null);
     }
   }
 
@@ -157,7 +163,8 @@ export default function LoginPage() {
               className="w-full"
               disabled={loading}
             >
-              {loading ? "Connexion…" : "Se connecter"}
+              {loadingAction === "email" ? <LoadingCircle /> : null}
+              {loading ? (loadingAction === "email" ? "Connexion…" : "Se connecter") : "Se connecter"}
             </Button>
           </form>
 
@@ -181,6 +188,7 @@ export default function LoginPage() {
               disabled={loading}
             >
               <span className="text-blue-500 text-lg font-black">G</span>
+              {loadingAction === "google" ? <LoadingCircle /> : null}
               Continuer avec Google
             </Button>
             <Button variant="outline" size="md" className="w-full gap-3">

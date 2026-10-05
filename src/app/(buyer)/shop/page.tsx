@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { type Product, type Category } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
@@ -212,7 +213,7 @@ function ShopContent() {
 
 export default function ShopPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-7xl px-6 py-8">Chargement de la boutique...</div>}>
+    <Suspense fallback={<div className="mx-auto flex min-h-64 max-w-7xl items-center px-6 py-8"><LoadingSpinner /></div>}>
       <ShopContent />
     </Suspense>
   );

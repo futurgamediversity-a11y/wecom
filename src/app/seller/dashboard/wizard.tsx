@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef } from "react";
 import Image from "next/image";
@@ -103,7 +103,7 @@ export function StoreWizard({
       const bannerUrl = await uploadImage(storeBanner!);
       const prodUrl = await uploadImage(prodImg!);
 
-      // 2. Create store
+      // 2. Create store (inactive until payment confirmed)
       const storeRef = await addDoc(collection(db, "stores"), {
         ownerId: userId,
         storeName: storeName,
@@ -112,7 +112,7 @@ export function StoreWizard({
         profileImageUrl: logoUrl,
         bannerImageUrl: bannerUrl,
         plan: plan,
-        isActive: true,
+        isActive: false, // Wait for payment
         createdAt: serverTimestamp(),
       });
 
@@ -124,14 +124,32 @@ export function StoreWizard({
         price: Number(prodPrice),
         description: prodDesc,
         quantity: Number(prodQty),
-        category: storeCategory, // Inherit store category or let them choose, here we inherit for simplicity
+        category: storeCategory,
         imageUrl: prodUrl,
         imageUrls: [prodUrl],
         status: "active",
         createdAt: serverTimestamp(),
       });
 
-      onComplete(storeRef.id);
+      // 4. Initiate GeniusPay payment session
+      const amount = plan === "monthly" ? Number(monthlyPrice) : Number(annualPrice);
+      const res = await fetch("/api/geniuspay/init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, returnUrl: window.location.href })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Erreur lors de l'initialisation du paiement GeniusPay.");
+      }
+
+      if (data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+      } else {
+        throw new Error("Lien de paiement GeniusPay introuvable.");
+      }
+
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue.");
       setLoading(false);
@@ -139,24 +157,24 @@ export function StoreWizard({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 backdrop-blur-md px-4 py-10 animate-in fade-in duration-300">
-      <div className="w-full max-w-3xl rounded-3xl bg-white shadow-2xl overflow-hidden flex flex-col max-h-full">
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center overflow-y-auto bg-black/60 backdrop-blur-sm md:p-4 animate-in fade-in duration-300">
+      <div className="w-full md:max-w-3xl rounded-t-3xl md:rounded-3xl bg-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh]">
         
         {/* Header */}
-        <div className="bg-wcom-offwhite px-8 py-6 border-b border-neutral-100 flex items-center justify-between shrink-0">
+        <div className="bg-wcom-offwhite px-5 md:px-8 py-5 md:py-6 border-b border-neutral-100 flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-2xl font-black text-wcom-ink">Créez votre boutique</h2>
-            <p className="text-sm font-medium text-neutral-500 mt-1">Étape {step} sur 3</p>
+            <h2 className="text-xl md:text-2xl font-black text-wcom-ink">Créez votre boutique</h2>
+            <p className="text-xs md:text-sm font-medium text-neutral-500 mt-1">Étape {step} sur 3</p>
           </div>
-          <div className="flex gap-2">
-            <div className={`h-2.5 w-10 rounded-full transition-colors ${step >= 1 ? "bg-wcom-green" : "bg-neutral-200"}`} />
-            <div className={`h-2.5 w-10 rounded-full transition-colors ${step >= 2 ? "bg-wcom-green" : "bg-neutral-200"}`} />
-            <div className={`h-2.5 w-10 rounded-full transition-colors ${step >= 3 ? "bg-wcom-green" : "bg-neutral-200"}`} />
+          <div className="flex gap-1.5 md:gap-2">
+            <div className={`h-2 md:h-2.5 w-6 md:w-10 rounded-full transition-colors ${step >= 1 ? "bg-wcom-green" : "bg-neutral-200"}`} />
+            <div className={`h-2 md:h-2.5 w-6 md:w-10 rounded-full transition-colors ${step >= 2 ? "bg-wcom-green" : "bg-neutral-200"}`} />
+            <div className={`h-2 md:h-2.5 w-6 md:w-10 rounded-full transition-colors ${step >= 3 ? "bg-wcom-green" : "bg-neutral-200"}`} />
           </div>
         </div>
 
         {/* Content */}
-        <div className="px-8 py-8 overflow-y-auto flex-1">
+        <div className="px-5 md:px-8 py-6 md:py-8 overflow-y-auto flex-1">
           {error && (
             <div className="mb-6 rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-600 border border-red-100 flex items-center gap-2">
               <X className="h-5 w-5" /> {error}
@@ -358,7 +376,7 @@ export function StoreWizard({
         </div>
 
         {/* Footer */}
-        <div className="bg-neutral-50 px-8 py-5 border-t border-neutral-100 flex items-center justify-between shrink-0">
+        <div className="bg-neutral-50 px-5 md:px-8 py-4 md:py-5 border-t border-neutral-100 flex items-center justify-between shrink-0">
           {step > 1 ? (
             <button 
               onClick={() => setStep(s => s - 1)}
@@ -380,7 +398,7 @@ export function StoreWizard({
             <button 
               onClick={handleFinish}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl bg-wcom-green px-8 py-3 text-sm font-bold text-white transition hover:-translate-y-px hover:bg-[#007b2f] disabled:opacity-70 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 rounded-xl bg-wcom-green px-6 md:px-8 py-3 text-sm font-bold text-white transition hover:-translate-y-px hover:bg-[#007b2f] disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading && <LoadingCircle className="h-4 w-4 text-white" />}
               Lancer ma boutique
@@ -391,3 +409,4 @@ export function StoreWizard({
     </div>
   );
 }
+

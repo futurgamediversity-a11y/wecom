@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { amount } = body;
+    const { amount, returnUrl } = body;
 
     if (typeof amount !== "number" || !Number.isFinite(amount) || amount < 200) {
       return NextResponse.json(
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         amount: amount,
-        description: "Commande sur W-COM"
+        description: "Commande sur W-COM", ...(returnUrl ? { return_url: returnUrl, cancel_url: returnUrl } : {})
       })
     });
 
@@ -90,3 +90,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

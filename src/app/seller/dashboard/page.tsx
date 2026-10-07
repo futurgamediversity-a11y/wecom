@@ -31,6 +31,7 @@ import {
 } from "firebase/firestore";
 import { formatXOF } from "@/lib/format";
 import { StoreWizard } from "./wizard";
+import { useRouter } from "next/navigation";
 
 const CATEGORIES = [
   "Mode",
@@ -56,7 +57,6 @@ interface SellerProduct {
 }
 
 async function uploadToCloudinary(file: File): Promise<string> {
-  // Get signed params from server
   const res = await fetch("/api/upload-signature", { method: "POST" });
   const { signature, timestamp, api_key, cloud_name } = await res.json();
 
@@ -77,6 +77,8 @@ async function uploadToCloudinary(file: File): Promise<string> {
 
 export default function SellerDashboardPage() {
   const { user, loading } = useAuth();
+  const router = useRouter();
+  
   const [products, setProducts] = useState<SellerProduct[]>([]);
   const [storeProfile, setStoreProfile] = useState<StoreProfile | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -96,35 +98,55 @@ export default function SellerDashboardPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // A store's document id is an auto-id, NOT the owner's uid: stores/{id}
-  // carries the seller as `ownerId`. Deriving storeId from user.uid listed
-  // products under an id no product uses, and wrote new ones with a storeId
-  // that `isStoreOwner` could not resolve, so every save was denied.
   const [storeId, setStoreId] = useState<string | null>(null);
   const [storeLookupDone, setStoreLookupDone] = useState(false);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
 
+  // Authentication & Store lookup
   useEffect(() => {
-    if (!user) return;
+    console.log("[SellerDashboard] Auth state changed. User:", user?.uid, "Loading:", loading);
+    
+    if (loading) return; // Still checking auth
+    
+    if (!user) {
+      console.log("[SellerDashboard] No user found, redirecting to login...");
+      router.replace("/login?next=/seller/dashboard");
+      return;
+    }
+
     let active = true;
+    console.log("[SellerDashboard] Fetching store for user:", user.uid);
     findStoreIdByOwner(user.uid).then((id) => {
       if (!active) return;
+      console.log("[SellerDashboard] Store lookup result. ID:", id);
       setStoreId(id);
       setStoreLookupDone(true);
+    }).catch(err => {
+      console.error("[SellerDashboard] Store lookup error:", err);
+      if (active) setStoreLookupDone(true);
     });
+    
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [user, loading, router]);
 
   // Load seller products and store profile
   useEffect(() => {
-    if (!user || !storeId) {
-      if (storeLookupDone) setIsLoadingProducts(false); // No store = no products to load
+    console.log("[SellerDashboard] Data effect triggered. User:", !!user, "StoreId:", storeId, "LookupDone:", storeLookupDone);
+    if (!user) return; // Let the other effect handle the redirect
+
+    if (!storeId) {
+      if (storeLookupDone) {
+        console.log("[SellerDashboard] User has no store. Stopping loading state to show wizard.");
+        setIsLoadingProducts(false); // No store = no products to load
+      }
       return;
     }
+    
     const fetchData = async () => {
+      console.log("[SellerDashboard] Starting to fetch data for store:", storeId);
       setIsLoadingProducts(true);
       try {
         const [profileLookup, snap] = await Promise.all([
@@ -137,6 +159,9 @@ export default function SellerDashboardPage() {
             )
           )
         ]);
+
+        console.log("[SellerDashboard] Profile fetched:", profileLookup.profile?.name);
+        console.log("[SellerDashboard] Products fetched:", snap.docs.length);
 
         setStoreProfile(profileLookup.profile);
 

@@ -333,19 +333,6 @@ export default function SellerDashboardPage() {
     );
   }
 
-        {showWizard && (
-          <StoreWizard 
-            userId={user!.uid} 
-            onComplete={(newStoreId) => {
-              setShowWizard(false);
-              setStoreId(newStoreId);
-            }} 
-          />
-        )}
-      </main>
-    );
-  }
-
   return (
     <main className="flex flex-col">
       {/* Header */}

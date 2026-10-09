@@ -148,14 +148,14 @@ export default function OrdersPage() {
 
   if (authLoading || ordersLoading) {
     return (
-      <main className="mx-auto flex min-h-64 max-w-5xl items-center px-6 py-8">
+      <main className="mx-auto flex min-h-64 max-w-5xl items-center py-8">
         <LoadingSpinner />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8">
+    <main className="mx-auto max-w-5xl py-8">
       <h1 className="text-2xl font-black">Mes commandes</h1>
       <p className="mt-1 text-sm text-neutral-500">
         Suivez et gérez vos commandes en cours et passées.

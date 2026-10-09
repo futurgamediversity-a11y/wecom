@@ -100,7 +100,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
   if (loading) {
     return (
-      <main className="mx-auto flex min-h-64 max-w-7xl items-center px-6 py-8">
+      <main className="mx-auto flex min-h-64 max-w-7xl items-center py-8">
         <LoadingSpinner />
       </main>
     );
@@ -113,7 +113,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
   const p = product;
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-8">
+    <main className="mx-auto max-w-7xl py-8">
       <nav className="mb-4 flex items-center gap-2 text-sm text-neutral-500">
         <Link href="/shop" className="hover:text-wcom-orange">
           Boutique

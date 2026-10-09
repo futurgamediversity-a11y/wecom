@@ -107,14 +107,14 @@ export default function FavoritesPage() {
 
   if (loading || productsLoading) {
     return (
-      <main className="mx-auto flex min-h-64 max-w-7xl items-center px-6 py-8">
+      <main className="mx-auto flex min-h-64 max-w-7xl items-center py-8">
         <LoadingSpinner />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-8">
+    <main className="mx-auto max-w-7xl py-8">
       {isDisplayingSuggestions ? (
         <div className="mb-8">
           <Card className="p-8 text-center bg-neutral-50/50">

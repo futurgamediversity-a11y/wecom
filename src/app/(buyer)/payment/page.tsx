@@ -27,7 +27,7 @@ export default function PaymentPage() {
   const total = 0;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8">
+    <main className="mx-auto max-w-5xl py-8">
       <h1 className="text-2xl font-black">Choisir un mode de paiement</h1>
       <p className="mt-1 text-sm text-neutral-500">
         Tous les paiements sont sécurisés et chiffrés.

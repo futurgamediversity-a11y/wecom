@@ -120,7 +120,7 @@ function ShopContent() {
   }, [products, searchTerm, selectedCategory]);
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-8">
+    <main className="mx-auto max-w-7xl py-8">
 
       {/* Categories */}
       <section className="mt-8">
@@ -213,7 +213,7 @@ function ShopContent() {
 
 export default function ShopPage() {
   return (
-    <Suspense fallback={<div className="mx-auto flex min-h-64 max-w-7xl items-center px-6 py-8"><LoadingSpinner /></div>}>
+    <Suspense fallback={<div className="mx-auto flex min-h-64 max-w-7xl items-center py-8"><LoadingSpinner /></div>}>
       <ShopContent />
     </Suspense>
   );

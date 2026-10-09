@@ -3,7 +3,7 @@ import Link from "next/link";
 export function Footer() {
   return (
     <footer className="mt-20 border-t border-neutral-200 bg-neutral-50">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 md:grid-cols-4">
+      <div className="mx-auto grid max-w-7xl gap-10 py-12 px-4 md:px-6 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="grid h-8 w-8 place-items-center rounded-sm bg-wcom-orange text-white font-black">
@@ -40,7 +40,7 @@ export function Footer() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-neutral-200 py-4 text-center text-xs text-neutral-500">
+      <div className="border-t border-neutral-200 py-4 text-center text-xs text-neutral-500 px-4 md:px-6">
         © 2026 W-COM — Tous droits réservés.
       </div>
     </footer>

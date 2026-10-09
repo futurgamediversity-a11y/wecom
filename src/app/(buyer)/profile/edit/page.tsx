@@ -78,7 +78,7 @@ export default function EditProfilePage() {
 
   if (authLoading || loading) {
     return (
-      <main className="mx-auto flex min-h-64 max-w-2xl items-center px-6 py-8">
+      <main className="mx-auto flex min-h-64 max-w-2xl items-center py-8">
         <LoadingSpinner />
       </main>
     );
@@ -89,7 +89,7 @@ export default function EditProfilePage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-8">
+    <main className="mx-auto max-w-2xl py-8">
       <h1 className="text-2xl font-black">Modifier mon profil</h1>
       <p className="mt-1 text-sm text-neutral-500">
         Mettez à jour vos informations personnelles.

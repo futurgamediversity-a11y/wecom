@@ -17,7 +17,7 @@ export default function CartPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto flex min-h-64 max-w-3xl items-center px-6 py-12">
+      <main className="mx-auto flex min-h-64 max-w-3xl items-center py-12">
         <LoadingSpinner />
       </main>
     );
@@ -25,7 +25,7 @@ export default function CartPage() {
 
   if (!user) {
     return (
-      <main className="mx-auto flex max-w-3xl flex-col items-center px-6 py-24 text-center">
+      <main className="mx-auto flex max-w-3xl flex-col items-center py-24 text-center">
         <ShoppingBag className="h-14 w-14 text-neutral-300" />
         <h1 className="mt-4 text-2xl font-black">Connectez-vous</h1>
         <p className="mt-2 text-neutral-500">
@@ -40,7 +40,7 @@ export default function CartPage() {
 
   if (cartItems.length === 0) {
     return (
-      <main className="mx-auto flex max-w-3xl flex-col items-center px-6 py-24 text-center">
+      <main className="mx-auto flex max-w-3xl flex-col items-center py-24 text-center">
         <ShoppingBag className="h-14 w-14 text-neutral-300" />
         <h1 className="mt-4 text-2xl font-black">Votre panier est vide</h1>
         <p className="mt-2 text-neutral-500">
@@ -54,7 +54,7 @@ export default function CartPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-8">
+    <main className="mx-auto max-w-7xl py-8">
       <h1 className="text-2xl font-black">Mon Panier</h1>
 
       <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-3">

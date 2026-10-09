@@ -71,7 +71,7 @@ export default function CheckoutPage() {
   };
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-8">
+    <main className="mx-auto max-w-7xl py-8">
       <h1 className="text-2xl font-black">Validation de la commande</h1>
 
       <form className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-3">

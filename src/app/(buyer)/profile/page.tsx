@@ -37,7 +37,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="mx-auto flex min-h-64 max-w-3xl items-center px-6 py-8">
+      <main className="mx-auto flex min-h-64 max-w-3xl items-center py-8">
         <LoadingSpinner />
       </main>
     );
@@ -53,7 +53,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-8">
+    <main className="mx-auto max-w-3xl py-8">
       <Card className="p-6">
         <div className="flex items-center gap-4">
           <div className="grid h-16 w-16 place-items-center rounded-full bg-wcom-orange/15 text-wcom-orange">

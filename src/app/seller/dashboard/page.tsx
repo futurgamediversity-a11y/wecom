@@ -321,6 +321,19 @@ export default function SellerDashboardPage() {
         </div>
 
         {showWizard && (
+          <StoreWizard
+            userId={user!.uid}
+            onComplete={(newStoreId) => {
+              setShowWizard(false);
+              setStoreId(newStoreId);
+            }}
+          />
+        )}
+      </main>
+    );
+  }
+
+        {showWizard && (
           <StoreWizard 
             userId={user!.uid} 
             onComplete={(newStoreId) => {
@@ -334,7 +347,7 @@ export default function SellerDashboardPage() {
   }
 
   return (
-    <div className="flex flex-col">
+    <main className="flex flex-col">
       {/* Header */}
       <header className="sticky top-4 z-10 mx-auto max-w-7xl rounded-2xl bg-white/80 backdrop-blur-xl shadow-lg px-8 py-4 animate-in fade-in slide-in-from-top-4 duration-700">
         <div className="flex items-center justify-between">
@@ -360,7 +373,7 @@ export default function SellerDashboardPage() {
       </header>
 
       {loading || isLoadingProducts ? (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center py-8">
           <LoadingSpinner />
         </div>
       ) : (
@@ -368,9 +381,9 @@ export default function SellerDashboardPage() {
           
           {/* Store Banner */}
           {storeProfile?.banner && (
-            <div className="relative w-full h-48 md:h-64 mb-8 rounded-2xl overflow-hidden shadow-sm">
-              <Image 
-                src={storeProfile.banner} 
+            <div className="relative w-full h-48 md:h-64 mb-8 rounded-2xl overflow-hidden shadow-md">
+              <Image
+                src={storeProfile.banner}
                 alt={`Bannière de ${storeProfile.name}`}
                 fill
                 className="object-cover"
@@ -378,7 +391,7 @@ export default function SellerDashboardPage() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-0 left-0 p-6 flex items-end gap-4">
                 {storeProfile.image && (
-                  <div className="relative h-16 w-16 md:h-20 md:w-20 rounded-full border-4 border-white overflow-hidden bg-white">
+                  <div className="relative h-16 w-16 md:h-20 md:w-20 rounded-full overflow-hidden bg-white shadow-lg">
                     <Image src={storeProfile.image} alt={storeProfile.name} fill className="object-cover" />
                   </div>
                 )}
@@ -396,13 +409,13 @@ export default function SellerDashboardPage() {
 
           {/* Success / Error banners */}
         {successMsg && (
-          <div className="mb-6 flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-5 py-3 text-sm font-semibold text-green-700">
+          <div className="mb-6 flex items-center gap-3 rounded-xl bg-green-50 px-5 py-3 text-sm font-semibold text-green-700 shadow-md">
             <CheckCircle2 className="h-5 w-5" />
             {successMsg}
           </div>
         )}
         {errorMsg && (
-          <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-600">
+          <div className="mb-6 flex items-center gap-3 rounded-xl bg-red-50 px-5 py-3 text-sm font-semibold text-red-600 shadow-md">
             <AlertCircle className="h-5 w-5" />
             {errorMsg}
           </div>
@@ -410,9 +423,9 @@ export default function SellerDashboardPage() {
 
         {/* Stats cards */}
         <div className="grid gap-6 md:grid-cols-3">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="rounded-xl bg-white p-6 shadow-md">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-lg bg-wcom-green/10 text-wcom-green">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-wcom-green/10 text-wcom-green">
                 <TrendingUp className="h-5 w-5" />
               </span>
               <h2 className="text-sm font-bold text-neutral-600">
@@ -421,9 +434,9 @@ export default function SellerDashboardPage() {
             </div>
             <p className="mt-3 text-3xl font-black text-wcom-green">0 XOF</p>
           </div>
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="rounded-xl bg-white p-6 shadow-md">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-lg bg-wcom-orange/10 text-wcom-orange">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-wcom-orange/10 text-wcom-orange">
                 <ShoppingBag className="h-5 w-5" />
               </span>
               <h2 className="text-sm font-bold text-neutral-600">
@@ -432,9 +445,9 @@ export default function SellerDashboardPage() {
             </div>
             <p className="mt-3 text-3xl font-black text-wcom-orange">0</p>
           </div>
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="rounded-xl bg-white p-6 shadow-md">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-lg bg-neutral-100 text-neutral-700">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-neutral-100 text-neutral-700">
                 <Package className="h-5 w-5" />
               </span>
               <h2 className="text-sm font-bold text-neutral-600">
@@ -694,14 +707,14 @@ export default function SellerDashboardPage() {
                     resetForm();
                     setErrorMsg("");
                   }}
-                  className="flex-1 rounded-sm border border-neutral-300 py-2.5 text-sm font-bold text-neutral-600 hover:bg-neutral-50"
+                  className="flex-1 rounded-xl py-2.5 text-sm font-bold text-neutral-600 hover:bg-neutral-100 shadow-sm"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-sm bg-wcom-green py-2.5 text-sm font-bold text-white shadow hover:bg-green-700 disabled:opacity-60"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-wcom-green py-2.5 text-sm font-bold text-white shadow-lg shadow-wcom-green/30 hover:bg-green-700 disabled:opacity-60"
                 >
                   {saving ? (
                     <>

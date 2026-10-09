@@ -71,7 +71,7 @@ export function TopNav() {
   }, [pathname, searchParams]);
 
   return (
-    <header className="sticky top-4 z-40 mx-auto max-w-7xl rounded-2xl border border-neutral-200/60 bg-white/80 backdrop-blur-xl shadow-lg">
+    <header className="sticky top-4 z-40 mx-auto max-w-7xl rounded-2xl bg-white/80 backdrop-blur-xl shadow-lg">
       <div className="flex h-16 items-center gap-6 px-6">
         {/* Brand */}
         <Link href="/shop" className="flex items-center gap-2">
@@ -87,14 +87,14 @@ export function TopNav() {
         <div className="relative">
           <button
             onClick={() => setOpen((v) => !v)}
-            className="flex items-center gap-2 rounded-sm border border-neutral-200 px-3 py-2 text-sm text-neutral-700 hover:border-wcom-green/40 hover:bg-neutral-50"
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 shadow-sm"
           >
             <MapPin className="h-4 w-4 text-wcom-green" />
             <span className="font-semibold">{location}</span>
             <ChevronDown className="h-4 w-4 text-neutral-400" />
           </button>
           {open ? (
-            <div className="absolute z-50 mt-2 w-64 overflow-hidden rounded-md border border-neutral-200 bg-white shadow-lg">
+            <div className="absolute z-50 mt-2 w-64 overflow-hidden rounded-xl bg-white shadow-xl">
               <div className="border-b border-neutral-100 px-4 py-3">
                 <p className="text-sm font-bold">Commune de livraison</p>
                 <p className="text-xs text-neutral-500">
@@ -132,7 +132,7 @@ export function TopNav() {
             value={searchTerm}
             onChange={handleSearchInputChange}
             placeholder="Rechercher un produit, une boutique…"
-            className="h-10 w-full rounded-sm border border-neutral-200 bg-neutral-50 pl-10 pr-3 text-sm placeholder:text-neutral-400 focus:border-wcom-orange focus:bg-white focus:outline-none focus:ring-2 focus:ring-wcom-orange/20"
+            className="h-10 w-full rounded-xl bg-neutral-50 pl-10 pr-3 text-sm placeholder:text-neutral-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-wcom-orange/20 shadow-sm"
           />
         </form>
 
@@ -216,8 +216,8 @@ export function TopNav() {
             Livraison
           </Link>
           <Link
-            href="/role"
-            className="ml-auto rounded-sm bg-wcom-green/10 px-3 py-1 font-bold text-wcom-green hover:bg-wcom-green/15"
+            href="/seller-setup"
+            className="ml-auto rounded-xl bg-wcom-green/10 px-3 py-1 font-bold text-wcom-green hover:bg-wcom-green/15"
           >
             Devenir vendeur →
           </Link>

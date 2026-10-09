@@ -305,14 +305,14 @@ export default function SellerDashboardPage() {
     return (
       <main className="min-h-screen bg-wcom-offwhite flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700">
         <div className="max-w-md w-full">
-          <div className="h-20 w-20 bg-wcom-green/10 text-wcom-green rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="h-20 w-20 bg-wcom-green/10 text-wcom-green rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-md">
             <ShoppingBag className="h-10 w-10" />
           </div>
           <h1 className="text-3xl font-black text-wcom-ink mb-4">Créez votre boutique</h1>
           <p className="text-neutral-500 font-medium mb-8">
             Vous n'avez pas encore de boutique. Configurez-la en quelques étapes pour commencer à vendre sur W-COM.
           </p>
-          <button 
+          <button
             onClick={() => setShowWizard(true)}
             className="w-full flex items-center justify-center gap-2 rounded-xl bg-wcom-green px-6 py-4 text-sm font-bold text-white shadow-lg shadow-wcom-green/30 transition hover:-translate-y-1 hover:bg-[#007b2f]"
           >
@@ -334,10 +334,10 @@ export default function SellerDashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 flex flex-col">
+    <div className="flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white px-8 py-4 animate-in fade-in slide-in-from-top-4 duration-700">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
+      <header className="sticky top-4 z-10 mx-auto max-w-7xl rounded-2xl bg-white/80 backdrop-blur-xl shadow-lg px-8 py-4 animate-in fade-in slide-in-from-top-4 duration-700">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <WComLogo size="sm" />
             <h1 className="text-xl font-black text-wcom-green">
@@ -350,7 +350,7 @@ export default function SellerDashboardPage() {
             )}
             <Link
               href="/seller-setup"
-              className="flex items-center gap-1 rounded-sm border border-neutral-200 px-3 py-2 text-sm font-semibold text-neutral-600 hover:border-neutral-300 hover:text-wcom-green transition-colors"
+              className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold text-neutral-600 hover:bg-neutral-100 transition-colors"
             >
               <LogOut className="h-4 w-4" />
               Changer d'espace
@@ -364,7 +364,7 @@ export default function SellerDashboardPage() {
           <LoadingSpinner />
         </div>
       ) : (
-        <div className="mx-auto max-w-7xl w-full px-8 py-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <div className="mx-auto max-w-7xl w-full py-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
           
           {/* Store Banner */}
           {storeProfile?.banner && (
@@ -456,7 +456,7 @@ export default function SellerDashboardPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Rechercher un produit..."
-                  className="w-full rounded-sm border border-neutral-300 bg-white py-3 pl-10 pr-4 text-sm focus:border-wcom-green focus:outline-none focus:ring-2 focus:ring-wcom-green/20"
+                  className="w-full rounded-xl bg-white py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-wcom-green/20 shadow-sm"
                 />
               </div>
             </div>
@@ -470,48 +470,30 @@ export default function SellerDashboardPage() {
                 setErrorMsg("");
               }}
               disabled={!user || loading}
-              className="flex items-center gap-2 rounded-sm bg-wcom-green px-4 py-2 text-sm font-bold text-white shadow hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-neutral-300 disabled:text-neutral-500"
+              className="flex items-center gap-2 rounded-xl bg-wcom-green px-4 py-2 text-sm font-bold text-white shadow-lg shadow-wcom-green/30 hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-neutral-300 disabled:text-neutral-500"
             >
               <Plus className="h-4 w-4" />
               Ajouter un produit
             </button>
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {FILTER_CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSelectedCategory(cat)}
-                className={`rounded-full border px-3 py-1 text-sm font-semibold transition ${
-                  selectedCategory === cat
-                    ? "border-wcom-green bg-wcom-green text-white"
-                    : "border-neutral-300 bg-white text-neutral-600 hover:border-wcom-green hover:text-wcom-green"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-            <span className="ml-auto text-sm text-neutral-500">
-              {filteredProducts.length} résultat(s)
-            </span>
-          </div>
 
           {filteredProducts.length === 0 ? (
-            <div className="mt-6 rounded-xl border border-dashed border-neutral-300 bg-white p-12 text-center">
+            <div className="mt-6 rounded-xl bg-white p-12 text-center shadow-md">
               <Package className="mx-auto h-12 w-12 text-neutral-300" />
               <p className="mt-3 font-bold text-neutral-600">
                 Aucun produit trouvé
               </p>
               <p className="mt-1 text-sm text-neutral-400">
-                Essayez une autre catégorie ou un autre mot-clé.
+                Essayez un autre mot-clé.
               </p>
             </div>
           ) : (
             <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredProducts.map((p) => (
-                <div
+                <Link
                   key={p.id}
-                  className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm"
+                  href={`/seller/product/${p.id}`}
+                  className="overflow-hidden rounded-xl bg-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   <div className="relative aspect-square w-full bg-neutral-100">
                     {p.imageUrl ? (
@@ -549,7 +531,7 @@ export default function SellerDashboardPage() {
                       </span>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -586,7 +568,7 @@ export default function SellerDashboardPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ex: Seridaga doré"
-                  className="mt-1.5 h-11 w-full rounded-sm border border-neutral-300 px-3 text-sm focus:border-wcom-green focus:outline-none focus:ring-2 focus:ring-wcom-green/20"
+                  className="mt-1.5 h-11 w-full rounded-xl bg-neutral-50 px-3 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-wcom-green/20 shadow-sm"
                 />
               </div>
 
@@ -601,7 +583,7 @@ export default function SellerDashboardPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Décrivez votre produit..."
-                  className="mt-1.5 w-full rounded-sm border border-neutral-300 px-3 py-2 text-sm focus:border-wcom-green focus:outline-none focus:ring-2 focus:ring-wcom-green/20"
+                  className="mt-1.5 w-full rounded-xl bg-neutral-50 px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-wcom-green/20 shadow-sm"
                 />
               </div>
 
@@ -618,7 +600,7 @@ export default function SellerDashboardPage() {
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     placeholder="Ex: 5000"
-                    className="mt-1.5 h-11 w-full rounded-sm border border-neutral-300 px-3 text-sm focus:border-wcom-green focus:outline-none focus:ring-2 focus:ring-wcom-green/20"
+                    className="mt-1.5 h-11 w-full rounded-xl bg-neutral-50 px-3 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-wcom-green/20 shadow-sm"
                   />
                 </div>
                 <div>
@@ -632,7 +614,7 @@ export default function SellerDashboardPage() {
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
                     placeholder="Ex: 10"
-                    className="mt-1.5 h-11 w-full rounded-sm border border-neutral-300 px-3 text-sm focus:border-wcom-green focus:outline-none focus:ring-2 focus:ring-wcom-green/20"
+                    className="mt-1.5 h-11 w-full rounded-xl bg-neutral-50 px-3 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-wcom-green/20 shadow-sm"
                   />
                 </div>
               </div>
@@ -643,7 +625,7 @@ export default function SellerDashboardPage() {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="mt-1.5 h-11 w-full rounded-sm border border-neutral-300 px-3 text-sm focus:border-wcom-green focus:outline-none focus:ring-2 focus:ring-wcom-green/20"
+                  className="mt-1.5 h-11 w-full rounded-xl bg-neutral-50 px-3 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-wcom-green/20 shadow-sm"
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c}>{c}</option>
@@ -660,7 +642,7 @@ export default function SellerDashboardPage() {
                   {imagePreviews.map((src, i) => (
                     <div
                       key={i}
-                      className="relative h-24 w-24 overflow-hidden rounded-lg border border-neutral-200"
+                      className="relative h-24 w-24 overflow-hidden rounded-xl shadow-md"
                     >
                       <Image
                         src={src}
@@ -680,7 +662,7 @@ export default function SellerDashboardPage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-neutral-300 text-neutral-400 hover:border-wcom-green hover:text-wcom-green"
+                    className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-xl bg-neutral-50 text-neutral-400 hover:bg-neutral-100 shadow-sm"
                   >
                     <Upload className="h-5 w-5" />
                     <span className="text-[10px] font-semibold">Ajouter</span>

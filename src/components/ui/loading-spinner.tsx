@@ -10,15 +10,16 @@ export function LoadingCircle({ className = "h-4 w-4" }: { className?: string })
 export function LoadingSpinner({ fullScreen = false }: { fullScreen?: boolean }) {
   const content = (
     <div className="flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in duration-500">
-      <div className="relative">
-        {/* Animated outer ring */}
-        <div className="absolute -inset-4 rounded-full border-2 border-transparent border-t-wcom-green border-l-wcom-orange animate-spin" style={{ animationDuration: '1.5s' }} />
-        {/* Inner static logo */}
-        <div className="animate-pulse">
-          <WComLogo size="sm" />
+      <button
+        disabled
+        className="group relative flex items-center gap-3 rounded-xl bg-wcom-green px-8 py-4 text-sm font-bold text-white shadow-lg shadow-wcom-green/30 transition-all"
+      >
+        <div className="relative">
+          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-white/60 border-l-white/60 animate-spin" style={{ animationDuration: '1s' }} />
+          <LoaderCircle className="h-5 w-5 animate-spin" />
         </div>
-      </div>
-      <p className="text-sm font-semibold text-neutral-500 animate-pulse">Chargement en cours...</p>
+        <span className="animate-pulse">Chargement en cours...</span>
+      </button>
     </div>
   );
 

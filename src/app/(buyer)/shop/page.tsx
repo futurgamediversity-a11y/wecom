@@ -136,8 +136,8 @@ function ShopContent() {
             const active = selectedCategory === c.name;
             const accent =
               active
-                ? "border-wcom-green bg-wcom-green text-white"
-                : "border-neutral-200 bg-white text-neutral-700 hover:border-wcom-orange/40";
+                ? "bg-wcom-green text-white shadow-lg shadow-wcom-green/30"
+                : "bg-white text-neutral-700 hover:bg-neutral-100";
             const iconAccent =
               c.accent === "orange"
                 ? "bg-wcom-orange text-white"
@@ -149,9 +149,9 @@ function ShopContent() {
                 key={c.id}
                 type="button"
                 onClick={() => setSelectedCategory(c.name)}
-                className={`flex flex-col items-center gap-2 rounded-lg border p-4 transition ${accent}`}
+                className={`flex flex-col items-center gap-2 rounded-xl p-4 transition ${accent}`}
               >
-                <span className={`grid h-12 w-12 place-items-center rounded-md ${iconAccent}`}>
+                <span className={`grid h-12 w-12 place-items-center rounded-xl ${iconAccent}`}>
                   <Icon className="h-6 w-6" />
                 </span>
                 <span className="text-sm font-semibold">{c.name}</span>
@@ -172,7 +172,7 @@ function ShopContent() {
               key={s}
               type="button"
               onClick={() => handleSearchTermChange(s)}
-              className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-semibold text-neutral-700 hover:border-wcom-orange/40"
+              className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 shadow-sm"
             >
               {s}
             </button>
@@ -241,7 +241,7 @@ function ProductCard({
   };
   
   return (
-    <div className="group flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white transition hover:-translate-y-0.5 hover:shadow-card">
+    <div className="group flex flex-col overflow-hidden rounded-xl bg-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg">
       <div className="relative aspect-square w-full overflow-hidden bg-neutral-100">
         <Image
           src={imageUrl}

@@ -194,27 +194,27 @@ export function StoreWizard({
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold mb-1.5">Nom de la boutique *</label>
-                    <input 
+                    <input
                       value={storeName} onChange={e => setStoreName(e.target.value)}
-                      className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-wcom-green focus:ring-2 focus:ring-wcom-green/20 outline-none" 
-                      placeholder="Ma super boutique" 
+                      className="w-full rounded-xl bg-neutral-50 px-4 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-wcom-green/20 outline-none shadow-sm"
+                      placeholder="Ma super boutique"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold mb-1.5">Catégorie *</label>
-                    <select 
+                    <select
                       value={storeCategory} onChange={e => setStoreCategory(e.target.value)}
-                      className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-wcom-green outline-none bg-white"
+                      className="w-full rounded-xl bg-neutral-50 px-4 py-3 text-sm focus:bg-white outline-none shadow-sm"
                     >
                       {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold mb-1.5">Description *</label>
-                    <textarea 
+                    <textarea
                       value={storeDesc} onChange={e => setStoreDesc(e.target.value)}
-                      className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-wcom-green focus:ring-2 focus:ring-wcom-green/20 outline-none resize-none h-24" 
-                      placeholder="Décrivez votre activité..." 
+                      className="w-full rounded-xl bg-neutral-50 px-4 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-wcom-green/20 outline-none resize-none h-24 shadow-sm"
+                      placeholder="Décrivez votre activité..."
                     />
                   </div>
                 </div>
@@ -222,7 +222,7 @@ export function StoreWizard({
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold mb-1.5">Logo (Photo de profil) *</label>
-                    <label className="flex h-24 w-24 cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300 bg-neutral-50 hover:border-wcom-green overflow-hidden relative">
+                    <label className="flex h-24 w-24 cursor-pointer items-center justify-center rounded-2xl bg-neutral-50 hover:bg-neutral-100 overflow-hidden relative shadow-sm">
                       {storeLogoPrev ? (
                         <Image src={storeLogoPrev} alt="Logo" fill className="object-cover" />
                       ) : (
@@ -233,7 +233,7 @@ export function StoreWizard({
                   </div>
                   <div>
                     <label className="block text-sm font-semibold mb-1.5">Bannière *</label>
-                    <label className="flex h-28 w-full cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300 bg-neutral-50 hover:border-wcom-green overflow-hidden relative">
+                    <label className="flex h-28 w-full cursor-pointer items-center justify-center rounded-2xl bg-neutral-50 hover:bg-neutral-100 overflow-hidden relative shadow-sm">
                       {storeBannerPrev ? (
                         <Image src={storeBannerPrev} alt="Banner" fill className="object-cover" />
                       ) : (
@@ -264,39 +264,39 @@ export function StoreWizard({
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold mb-1.5">Nom du produit *</label>
-                    <input 
+                    <input
                       value={prodName} onChange={e => setProdName(e.target.value)}
-                      className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-wcom-orange focus:ring-2 focus:ring-wcom-orange/20 outline-none" 
+                      className="w-full rounded-xl bg-neutral-50 px-4 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-wcom-orange/20 outline-none shadow-sm"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold mb-1.5">Prix (FCFA) *</label>
-                      <input 
+                      <input
                         type="number" value={prodPrice} onChange={e => setProdPrice(e.target.value)}
-                        className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-wcom-orange outline-none" 
+                        className="w-full rounded-xl bg-neutral-50 px-4 py-3 text-sm focus:bg-white outline-none shadow-sm"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-semibold mb-1.5">Quantité *</label>
-                      <input 
+                      <input
                         type="number" value={prodQty} onChange={e => setProdQty(e.target.value)}
-                        className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-wcom-orange outline-none" 
+                        className="w-full rounded-xl bg-neutral-50 px-4 py-3 text-sm focus:bg-white outline-none shadow-sm"
                       />
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold mb-1.5">Description *</label>
-                    <textarea 
+                    <textarea
                       value={prodDesc} onChange={e => setProdDesc(e.target.value)}
-                      className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-wcom-orange outline-none resize-none h-20" 
+                      className="w-full rounded-xl bg-neutral-50 px-4 py-3 text-sm focus:bg-white outline-none resize-none h-20 shadow-sm"
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold mb-1.5">Photo du produit *</label>
-                  <label className="flex h-48 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300 bg-neutral-50 hover:border-wcom-orange overflow-hidden relative">
+                  <label className="flex h-48 w-full cursor-pointer flex-col items-center justify-center rounded-2xl bg-neutral-50 hover:bg-neutral-100 overflow-hidden relative shadow-sm">
                     {prodImgPrev ? (
                       <Image src={prodImgPrev} alt="Product" fill className="object-cover" />
                     ) : (
@@ -324,12 +324,12 @@ export function StoreWizard({
 
               <div className="grid md:grid-cols-2 gap-4">
                 {/* Monthly */}
-                <div 
+                <div
                   onClick={() => setPlan("monthly")}
-                  className={`cursor-pointer rounded-2xl border-2 p-6 transition-all ${
-                    plan === "monthly" 
-                      ? "border-wcom-green bg-wcom-green/5 ring-4 ring-wcom-green/10" 
-                      : "border-neutral-200 hover:border-wcom-green/50"
+                  className={`cursor-pointer rounded-2xl p-6 transition-all shadow-md ${
+                    plan === "monthly"
+                      ? "bg-wcom-green shadow-lg shadow-wcom-green/30"
+                      : "bg-white hover:shadow-lg"
                   }`}
                 >
                   <div className="flex justify-between items-start mb-4">
@@ -348,12 +348,12 @@ export function StoreWizard({
                 </div>
 
                 {/* Annual */}
-                <div 
+                <div
                   onClick={() => setPlan("annual")}
-                  className={`cursor-pointer rounded-2xl border-2 p-6 transition-all ${
-                    plan === "annual" 
-                      ? "border-wcom-green bg-wcom-green/5 ring-4 ring-wcom-green/10" 
-                      : "border-neutral-200 hover:border-wcom-green/50"
+                  className={`cursor-pointer rounded-2xl p-6 transition-all shadow-md ${
+                    plan === "annual"
+                      ? "bg-wcom-green shadow-lg shadow-wcom-green/30"
+                      : "bg-white hover:shadow-lg"
                   }`}
                 >
                   <div className="flex justify-between items-start mb-4">

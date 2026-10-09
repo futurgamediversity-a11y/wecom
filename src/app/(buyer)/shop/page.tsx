@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
-  Zap,
   LayoutGrid,
   Shirt,
   Smartphone,
@@ -14,6 +13,8 @@ import {
   Star,
   ShoppingBag,
   Heart,
+  Zap,
+  Box,
 } from "lucide-react";
 import { type Product, type Category } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
@@ -25,7 +26,6 @@ import { toProduct } from "@/lib/firestore-schema";
 import { fetchStoreNames } from "@/lib/store";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  Zap,
   LayoutGrid,
   Shirt,
   Smartphone,
@@ -34,7 +34,6 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 const categories: Category[] = [
-  { id: "flash", name: "Ventes Flash", icon: "Zap", accent: "orange" },
   { id: "all", name: "Tout", icon: "LayoutGrid", accent: "green" },
   { id: "fashion", name: "Mode", icon: "Shirt" },
   { id: "electronics", name: "Électronique", icon: "Smartphone" },
@@ -126,11 +125,16 @@ function ShopContent() {
       <section className="mt-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold">Catégories</h2>
-            <p className="text-sm text-neutral-500">Filtrez par catégorie ou utilisez la barre de recherche pour trouver un produit.</p>
+            <h2 className="flex items-center gap-2 text-lg font-bold">
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-wcom-green/10 text-wcom-green">
+                <Box className="h-5 w-5" aria-hidden="true" />
+              </span>
+              Catégories
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">Filtrez par catégorie ou utilisez la barre de recherche pour trouver un produit.</p>
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-6">
+        <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-5">
           {categories.map((c) => {
             const Icon = ICONS[c.icon] ?? LayoutGrid;
             const active = selectedCategory === c.name;

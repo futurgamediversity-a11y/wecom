@@ -44,11 +44,19 @@ function LocationPicker({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex items-center gap-1.5 rounded-xl px-2 py-2 text-sm text-neutral-700 hover:bg-neutral-100 sm:gap-2 sm:px-3"
+        className="flex h-9 items-center gap-1.5 rounded-xl bg-wcom-green/10 px-2.5 text-sm text-neutral-800 transition hover:bg-wcom-green/15 lg:h-auto lg:bg-transparent lg:px-3 lg:py-2 lg:shadow-sm lg:hover:bg-neutral-100"
       >
         <MapPin className="h-4 w-4 shrink-0 text-wcom-green" />
-        <span className="max-w-24 truncate font-semibold sm:max-w-none">{location}</span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-neutral-400" />
+        <span className="max-w-24 truncate font-semibold sm:hidden">
+          {location.split(",")[0]}
+        </span>
+        <span className="hidden font-semibold sm:inline">{location}</span>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-neutral-400 transition-transform",
+            open && "rotate-180"
+          )}
+        />
       </button>
       {open ? (
         <div className="absolute left-0 z-50 mt-2 w-64 overflow-hidden rounded-xl bg-white shadow-xl">
@@ -128,19 +136,19 @@ export function TopNav() {
   };
 
   return (
-    <header className="sticky top-2 z-40 mx-auto max-w-7xl rounded-2xl bg-white/90 shadow-lg backdrop-blur-xl md:top-4">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 lg:h-16 lg:flex-nowrap lg:gap-6 lg:px-6 lg:py-0">
+    <header className="sticky top-2 z-40 mx-auto w-full max-w-7xl overflow-x-clip rounded-2xl bg-white/90 shadow-lg backdrop-blur-xl md:top-4">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-2.5 px-3 pb-2.5 pt-3 lg:h-16 lg:flex-nowrap lg:gap-6 lg:px-6 lg:py-0">
         {/* Brand */}
-        <Link href="/shop" className="order-1 flex shrink-0 items-center gap-2">
+        <Link href="/shop" className="order-1 flex min-w-0 shrink-0 items-center gap-2">
           <span className="grid h-8 w-8 place-items-center rounded-sm bg-wcom-orange font-black text-white">
             W
           </span>
-          <span className="text-base font-black tracking-wider text-neutral-900 sm:text-lg">
+          <span className="hidden text-base font-black tracking-wider text-neutral-900 min-[360px]:inline sm:text-lg">
             W-COM
           </span>
         </Link>
 
-        {/* Location */}
+        {/* Location (desktop) */}
         <div className="order-2 hidden lg:block">
           <LocationPicker
             location={location}
@@ -153,7 +161,8 @@ export function TopNav() {
         {/* Search */}
         <form
           onSubmit={handleSearch}
-          className="relative order-3 basis-full lg:order-2 lg:max-w-2xl lg:flex-1 lg:basis-auto"
+          role="search"
+          className="relative order-3 w-full min-w-0 basis-full lg:order-2 lg:max-w-2xl lg:flex-1 lg:basis-auto"
         >
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
           <input
@@ -162,41 +171,41 @@ export function TopNav() {
             onChange={handleSearchInputChange}
             placeholder="Rechercher un produit, une boutique…"
             aria-label="Rechercher un produit ou une boutique"
-            className="h-10 w-full rounded-xl bg-neutral-50 pl-10 pr-3 text-sm placeholder:text-neutral-400 shadow-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-wcom-orange/20"
+            className="h-10 w-full min-w-0 rounded-xl bg-neutral-50 pl-10 pr-3 text-sm placeholder:text-neutral-400 shadow-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-wcom-orange/20"
           />
         </form>
 
         {/* Quick actions */}
-        <nav aria-label="Actions du compte" className="order-2 ml-auto flex shrink-0 items-center gap-0.5 text-neutral-600 lg:order-3 lg:gap-1">
+        <nav aria-label="Actions du compte" className="order-2 ml-auto flex min-w-0 shrink-0 items-center text-neutral-600 lg:order-3 lg:gap-1">
           {user && (
             <>
               <Link
                 href="/favorites"
-                className="rounded-sm p-2 hover:bg-neutral-100"
+                className="grid h-9 w-9 place-items-center rounded-lg hover:bg-neutral-100 lg:h-auto lg:w-auto lg:rounded-sm lg:p-2"
                 aria-label="Favoris"
               >
-                <Heart className="h-5 w-5 sm:h-5 sm:w-5" />
+                <Heart className="h-5 w-5" />
               </Link>
               <Link
                 href="/notifications"
-                className="rounded-sm p-2 hover:bg-neutral-100"
+                className="grid h-9 w-9 place-items-center rounded-lg hover:bg-neutral-100 lg:h-auto lg:w-auto lg:rounded-sm lg:p-2"
                 aria-label="Notifications"
               >
                 <Bell className="h-5 w-5" />
               </Link>
               <Link
                 href="/cart"
-                className="relative rounded-sm p-2 hover:bg-neutral-100"
+                className="relative grid h-9 w-9 place-items-center rounded-lg hover:bg-neutral-100 lg:h-auto lg:w-auto lg:rounded-sm lg:p-2"
                 aria-label="Panier"
               >
                 <ShoppingBag className="h-5 w-5" />
-                <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-wcom-orange px-1 text-[10px] font-bold text-white">
+                <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-wcom-orange px-1 text-[10px] font-bold text-white lg:-right-0.5 lg:-top-0.5">
                   2
                 </span>
               </Link>
               <Link
                 href="/profile"
-                className="ml-0 inline-flex items-center gap-2 rounded-sm border border-neutral-200 px-2 py-2 text-sm hover:bg-neutral-50 lg:ml-2 lg:px-3 lg:py-1.5"
+                className="ml-1 inline-flex h-9 w-9 items-center justify-center gap-2 rounded-lg border border-neutral-200 text-sm hover:bg-neutral-50 lg:ml-2 lg:h-auto lg:w-auto lg:rounded-sm lg:px-3 lg:py-1.5"
                 aria-label="Mon compte"
               >
                 <User className="h-4 w-4" />
@@ -205,9 +214,10 @@ export function TopNav() {
                 </span>
               </Link>
               <button
+                type="button"
                 onClick={handleSignOut}
                 aria-label="Se déconnecter"
-                className="ml-0 inline-flex items-center gap-2 rounded-sm border border-neutral-200 px-2 py-2 text-sm text-red-600 hover:bg-red-50 lg:ml-1 lg:px-3 lg:py-1.5"
+                className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 text-sm text-red-600 hover:bg-red-50 lg:h-auto lg:w-auto lg:rounded-sm lg:px-3 lg:py-1.5"
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -217,14 +227,14 @@ export function TopNav() {
             <div className="flex items-center gap-1 lg:gap-2">
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 rounded-sm px-2 py-2 text-xs font-semibold text-wcom-orange hover:bg-wcom-orange/5 lg:px-3 lg:py-1.5 lg:text-sm"
+                className="inline-flex h-9 items-center rounded-lg px-2.5 text-sm font-semibold text-wcom-orange hover:bg-wcom-orange/5 lg:h-auto lg:rounded-sm lg:px-3 lg:py-1.5"
               >
                 <span className="lg:hidden">Connexion</span>
                 <span className="hidden lg:inline">Se connecter</span>
               </Link>
               <Link
                 href="/register"
-                className="inline-flex items-center gap-2 rounded-sm bg-wcom-orange px-2 py-2 text-xs font-semibold text-white hover:bg-wcom-orange/90 sm:px-3 lg:px-4 lg:py-1.5 lg:text-sm"
+                className="inline-flex h-9 items-center rounded-lg bg-wcom-orange px-3 text-sm font-semibold text-white hover:bg-wcom-orange/90 lg:h-auto lg:rounded-sm lg:px-4 lg:py-1.5"
               >
                 <span className="sm:hidden">Inscription</span>
                 <span className="hidden sm:inline">Créer un compte</span>
@@ -235,9 +245,9 @@ export function TopNav() {
       </div>
 
       {/* Sub-nav (categories) */}
-      <div className="border-t border-neutral-100/60 bg-white/60 backdrop-blur-sm">
-        <div className="flex items-center gap-1 px-2 py-1.5 text-sm text-neutral-600 lg:h-10 lg:gap-6 lg:px-6 lg:py-0">
-          <div className="lg:hidden">
+      <div className="border-t border-neutral-100/70 bg-white/60 backdrop-blur-sm">
+        <div className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-600 lg:h-10 lg:gap-6 lg:px-6 lg:py-0">
+          <div className="shrink-0 lg:hidden">
             <LocationPicker
               location={location}
               open={open}
@@ -245,22 +255,25 @@ export function TopNav() {
               onSelect={selectCommune}
             />
           </div>
-          <nav aria-label="Navigation principale" className="flex min-w-0 flex-1 items-center gap-5 overflow-x-auto whitespace-nowrap py-1 lg:gap-6">
-            <Link href="/shop" className="hover:text-wcom-orange">
+          <nav
+            aria-label="Navigation principale"
+            className="no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto whitespace-nowrap pr-6 [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)] lg:gap-6 lg:pr-0 lg:[mask-image:none]"
+          >
+            <Link href="/shop" className="shrink-0 rounded-lg px-2.5 py-1.5 hover:text-wcom-orange lg:p-0">
               Boutique
             </Link>
-            <Link href="/orders" className="hover:text-wcom-orange">
+            <Link href="/orders" className="shrink-0 rounded-lg px-2.5 py-1.5 hover:text-wcom-orange lg:p-0">
               Mes commandes
             </Link>
-            <Link href="/services" className="hover:text-wcom-orange">
+            <Link href="/services" className="shrink-0 rounded-lg px-2.5 py-1.5 hover:text-wcom-orange lg:p-0">
               Services
             </Link>
-            <Link href="/livreur" className="hover:text-wcom-orange">
+            <Link href="/livreur" className="shrink-0 rounded-lg px-2.5 py-1.5 hover:text-wcom-orange lg:p-0">
               Livraison
             </Link>
             <Link
               href="/seller-setup"
-              className="shrink-0 rounded-xl bg-wcom-green/10 px-3 py-1 font-bold text-wcom-green hover:bg-wcom-green/15 lg:ml-auto"
+              className="shrink-0 rounded-xl bg-wcom-green/10 px-3 py-1.5 font-bold text-wcom-green hover:bg-wcom-green/15 lg:ml-auto lg:py-1"
             >
               Devenir vendeur →
             </Link>

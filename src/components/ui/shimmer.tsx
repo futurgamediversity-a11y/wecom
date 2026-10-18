@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 export function Shimmer({ className }: { className?: string }) {
   return (

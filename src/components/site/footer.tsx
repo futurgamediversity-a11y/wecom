@@ -16,27 +16,29 @@ export function Footer() {
           </p>
         </div>
         <div>
-          <h4 className="text-sm font-bold">Acheter</h4>
+          <h4 className="text-sm font-bold text-neutral-900">Acheter</h4>
           <ul className="mt-3 space-y-2 text-sm text-neutral-600">
-            <li><Link href="/shop">Boutique</Link></li>
-            <li><Link href="/orders">Mes commandes</Link></li>
-            <li><Link href="/favorites">Favoris</Link></li>
+            <li><Link href="/shop" className="hover:text-wcom-orange transition">Boutique</Link></li>
+            <li><Link href="/services" className="hover:text-wcom-orange transition">Services</Link></li>
+            <li><Link href="/orders" className="hover:text-wcom-orange transition">Mes commandes</Link></li>
+            <li><Link href="/favorites" className="hover:text-wcom-orange transition">Favoris</Link></li>
+            <li><Link href="/livreur" className="hover:text-wcom-orange transition">Livraison</Link></li>
           </ul>
         </div>
         <div>
-          <h4 className="text-sm font-bold">Vendre</h4>
+          <h4 className="text-sm font-bold text-neutral-900">Vendre</h4>
           <ul className="mt-3 space-y-2 text-sm text-neutral-600">
-            <li><Link href="/role">Devenir vendeur</Link></li>
-            <li><Link href="/role">Créer un espace de travail</Link></li>
-            <li><Link href="/help">Centre d&apos;aide</Link></li>
+            <li><Link href="/seller-setup" className="hover:text-wcom-orange transition">Devenir vendeur</Link></li>
+            <li><Link href="/workspace" className="hover:text-wcom-orange transition">Créer un espace de travail</Link></li>
+            <li><Link href="/seller/dashboard" className="hover:text-wcom-orange transition">Tableau de bord Vendeur</Link></li>
           </ul>
         </div>
         <div>
-          <h4 className="text-sm font-bold">Légal</h4>
+          <h4 className="text-sm font-bold text-neutral-900">Légal & Contact</h4>
           <ul className="mt-3 space-y-2 text-sm text-neutral-600">
-            <li>Conditions générales</li>
-            <li>Politique de confidentialité</li>
-            <li>Contact support</li>
+            <li><Link href="/legal/terms" className="hover:text-wcom-orange transition">Conditions générales</Link></li>
+            <li><Link href="/legal/privacy" className="hover:text-wcom-orange transition">Politique de confidentialité</Link></li>
+            <li><a href="mailto:contact@w-com.ci" className="hover:text-wcom-orange transition">Contact support</a></li>
           </ul>
         </div>
       </div>

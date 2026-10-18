@@ -5,8 +5,8 @@ import Image from "next/image";
 import { Upload, X, CheckCircle2, ChevronRight, Store, Package, CreditCard, Sparkles } from "lucide-react";
 import { formatXOF } from "@/lib/format";
 import { usePricing } from "@/lib/pricing";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
 
 const CATEGORIES = [
   "Mode",
@@ -164,10 +164,15 @@ export function StoreWizard({
           ? quarterlyPrice
           : annualPrice;
 
+      const activeUid = auth.currentUser?.uid || userId;
+      if (!activeUid) {
+        throw new Error("Session expirée. Veuillez vous reconnecter avant de lancer la boutique.");
+      }
+
       // When amount === 0: activate immediately in Firestore
       if (amount === 0) {
         const storeRef = await addDoc(collection(db, "stores"), {
-          ownerId: userId,
+          ownerId: activeUid,
           storeName,
           name: storeName,
           description: storeDesc,
@@ -182,9 +187,20 @@ export function StoreWizard({
           createdAt: serverTimestamp(),
         });
 
+        // Update user document with seller role & storeId
+        try {
+          await updateDoc(doc(db, "users", activeUid), {
+            storeId: storeRef.id,
+            role: "seller",
+            updatedAt: serverTimestamp(),
+          });
+        } catch (uErr) {
+          console.warn("Could not update user doc with storeId:", uErr);
+        }
+
         await addDoc(collection(db, "products"), {
           storeId: storeRef.id,
-          sellerId: userId,
+          sellerId: activeUid,
           name: prodName,
           price: Number(prodPrice),
           description: prodDesc,
@@ -233,7 +249,16 @@ export function StoreWizard({
       }
     } catch (err: any) {
       console.error("Error setting up store:", err);
-      setError(err.message || "Une erreur est survenue lors de la création de la boutique.");
+      if (
+        err?.code === "permission-denied" ||
+        err?.message?.includes("Missing or insufficient permissions")
+      ) {
+        setError(
+          "Erreur de permissions Firebase : Les règles Firestore doivent autoriser la création de boutiques dans 'stores'. Veuillez vérifier vos règles de sécurité Firestore."
+        );
+      } else {
+        setError(err.message || "Une erreur est survenue lors de la création de la boutique.");
+      }
     } finally {
       setLoading(false);
     }

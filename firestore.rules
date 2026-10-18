@@ -1,22 +1,80 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Allow authenticated users to read/write their own favorites
-    match /favorites/{favoriteId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+    
+    // Configurations dynamiques (tarifs, options globales)
+    match /config/{document=**} {
+      allow read: if true;
+      allow write: if false;
     }
     
-    // Allow authenticated users to read/write their own user document
+    // Utilisateurs : lecture publique pour les profils vendeurs, écriture restreinte à son propre compte
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Allow anyone to read products (for now, adjust as needed)
+    // Boutiques : lecture publique, création par tout utilisateur connecté, mise à jour par le propriétaire
+    match /stores/{storeId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid || 
+        resource.data.userId == request.auth.uid
+      );
+    }
+    
+    // Produits : lecture publique, création et modification par les utilisateurs authentifiés
     match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null; // Adjust this to only allow sellers to write products
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+    
+    // Favoris : chaque utilisateur gère ses favoris
+    match /favorites/{favoriteId} {
+      allow read: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Panier : chaque acheteur gère son panier
+    match /cart/{cartId} {
+      allow read: if request.auth != null && (resource == null || resource.data.buyerId == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.buyerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.buyerId == request.auth.uid;
+    }
+
+    // Commandes : les utilisateurs authentifiés peuvent créer et consulter des commandes
+    match /orders/{orderId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Espace de travail / Prestataires de services
+    match /service_providers/{providerId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.ownerId == request.auth.uid
+      );
+    }
+
+    // Candidatures Livreurs
+    match /courier_applications/{appId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Avis & Commentaires
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read, write: if request.auth != null;
     }
   }
 }

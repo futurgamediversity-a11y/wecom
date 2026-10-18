@@ -213,13 +213,31 @@ function SellerDashboardContent() {
                 createdAt: serverTimestamp(),
               });
 
+              // Also update user profile with storeId and seller role
+              try {
+                await updateDoc(doc(db, "users", user.uid), {
+                  storeId: storeRef.id,
+                  role: "seller",
+                  updatedAt: serverTimestamp(),
+                });
+              } catch (uErr) {
+                console.warn("Could not update user doc with storeId:", uErr);
+              }
+
               sessionStorage.removeItem("wcom_pending_store_setup");
               setStoreId(storeRef.id);
               setSuccessMsg("Félicitations ! Votre abonnement a été validé et votre boutique est maintenant active.");
               router.replace("/seller/dashboard");
             } catch (err: any) {
               console.error("Error creating validated store:", err);
-              setErrorMsg("Erreur lors de la finalisation de la boutique.");
+              if (
+                err?.code === "permission-denied" ||
+                err?.message?.includes("Missing or insufficient permissions")
+              ) {
+                setErrorMsg("Erreur de permissions Firebase : Les règles Firestore doivent autoriser la collection 'stores'.");
+              } else {
+                setErrorMsg("Erreur lors de la finalisation de la boutique.");
+              }
             } finally {
               setIsLoadingProducts(false);
             }

@@ -36,7 +36,7 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 const categories: Category[] = [
-  { id: "all", name: "Tout", icon: "LayoutGrid", accent: "green" },
+  { id: "all", name: "Tout", icon: "LayoutGrid" },
   { id: "fashion", name: "Mode", icon: "Shirt" },
   { id: "electronics", name: "Électronique", icon: "Smartphone" },
   { id: "beauty", name: "Beauté", icon: "Sparkles" },

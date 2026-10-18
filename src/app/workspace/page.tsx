@@ -16,6 +16,8 @@ import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { formatXOF } from "@/lib/format";
+import { usePricing } from "@/lib/pricing";
+import { Shimmer } from "@/components/ui/shimmer";
 
 const SERVICE_CATEGORIES = [
   "Tech & Digital",
@@ -42,6 +44,7 @@ const COMMUNES = [
 
 export default function WorkspacePage() {
   const { user } = useAuth();
+  const { pricing, loading: pricingLoading } = usePricing();
   const [showModal, setShowModal] = useState(false);
   const [step, setStep] = useState<1 | 2>(1); // 1: Info, 2: Plan & Activation
   const [fullName, setFullName] = useState(user?.displayName || "");
@@ -50,13 +53,14 @@ export default function WorkspacePage() {
   const [phone, setPhone] = useState("");
   const [description, setDescription] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
-  const [plan, setPlan] = useState<"monthly" | "annual">("monthly");
+  const [plan, setPlan] = useState<"personnel" | "enterprise">("personnel");
   const [submitting, setSubmitting] = useState(false);
   const [activated, setActivated] = useState(false);
   const [error, setError] = useState("");
 
-  const monthlyPrice = 5000;
-  const annualPrice = 50000;
+  const personnelPrice = pricing.workspace.personnel;
+  const enterprisePrice = pricing.workspace.enterprise;
+  const currentPrice = plan === "personnel" ? personnelPrice : enterprisePrice;
 
   const handleNextToPayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +77,7 @@ export default function WorkspacePage() {
     setError("");
 
     try {
-      const amount = plan === "monthly" ? monthlyPrice : annualPrice;
+      const amount = currentPrice;
       const origin = window.location.origin;
 
       // 1. Initiate GeniusPay payment session for the workspace subscription
@@ -86,7 +90,7 @@ export default function WorkspacePage() {
             amount,
             returnUrl: `${origin}/workspace?workspace_success=true`,
             cancelUrl: `${origin}/workspace?workspace_cancelled=true`,
-            description: `Abonnement Espace Pro W-COM (${plan === "monthly" ? "Mensuel" : "Annuel"}) - ${fullName}`,
+            description: `Abonnement Espace Pro W-COM (${plan === "personnel" ? "Personnel" : "Entreprise"}) - ${fullName}`,
           }),
         });
         const data = await res.json();
@@ -378,11 +382,11 @@ export default function WorkspacePage() {
                 )}
 
                 <div className="space-y-4 mb-6">
-                  {/* Monthly plan */}
+                  {/* Personnel plan */}
                   <div
-                    onClick={() => setPlan("monthly")}
+                    onClick={() => setPlan("personnel")}
                     className={`cursor-pointer rounded-2xl border p-4 transition ${
-                      plan === "monthly"
+                      plan === "personnel"
                         ? "border-[#A855F7] bg-purple-50/50 shadow-md ring-2 ring-[#A855F7]/20"
                         : "border-neutral-200 bg-white hover:border-neutral-300"
                     }`}
@@ -390,23 +394,25 @@ export default function WorkspacePage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-black text-base text-neutral-900">Formule Mensuelle</span>
-                          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-[#A855F7]">Flexible</span>
+                          <span className="font-black text-base text-neutral-900">Formule Personnel</span>
+                          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-[#A855F7]">Indépendant</span>
                         </div>
-                        <p className="text-xs text-neutral-500 mt-0.5">Visibilité complète sur le hub Services W-COM</p>
+                        <p className="text-xs text-neutral-500 mt-0.5">Visibilité complète sur le hub Services W-COM et profil professionnel</p>
                       </div>
                       <div className="text-right">
-                        <span className="text-lg font-black text-[#A855F7]">{formatXOF(monthlyPrice)}</span>
+                        <span className="text-lg font-black text-[#A855F7]">
+                          {pricingLoading ? <Shimmer className="h-6 w-20 rounded" /> : formatXOF(personnelPrice)}
+                        </span>
                         <span className="block text-[10px] text-neutral-400">/ mois</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Annual plan */}
+                  {/* Enterprise plan */}
                   <div
-                    onClick={() => setPlan("annual")}
+                    onClick={() => setPlan("enterprise")}
                     className={`cursor-pointer rounded-2xl border p-4 transition ${
-                      plan === "annual"
+                      plan === "enterprise"
                         ? "border-[#A855F7] bg-purple-50/50 shadow-md ring-2 ring-[#A855F7]/20"
                         : "border-neutral-200 bg-white hover:border-neutral-300"
                     }`}
@@ -414,14 +420,16 @@ export default function WorkspacePage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-black text-base text-neutral-900">Formule Annuelle</span>
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">2 mois offerts</span>
+                          <span className="font-black text-base text-neutral-900">Formule Entreprise</span>
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Multi-services</span>
                         </div>
-                        <p className="text-xs text-neutral-500 mt-0.5">Visibilité maximale prioritaire 12 mois</p>
+                        <p className="text-xs text-neutral-500 mt-0.5">Visibilité prioritaire maximale pour équipes et agences</p>
                       </div>
                       <div className="text-right">
-                        <span className="text-lg font-black text-emerald-600">{formatXOF(annualPrice)}</span>
-                        <span className="block text-[10px] text-neutral-400">/ an</span>
+                        <span className="text-lg font-black text-emerald-600">
+                          {pricingLoading ? <Shimmer className="h-6 w-20 rounded" /> : formatXOF(enterprisePrice)}
+                        </span>
+                        <span className="block text-[10px] text-neutral-400">/ mois</span>
                       </div>
                     </div>
                   </div>
@@ -448,7 +456,7 @@ export default function WorkspacePage() {
                     onClick={handleActivateService}
                     className="flex-1 rounded-xl bg-[#A855F7] py-3 text-sm font-bold text-white shadow-md hover:bg-[#9333EA] transition disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {submitting ? "Activation en cours..." : `Activer mon espace (${formatXOF(plan === "monthly" ? monthlyPrice : annualPrice)})`}
+                    {submitting ? "Activation en cours..." : `Activer mon espace (${formatXOF(currentPrice)})`}
                   </button>
                 </div>
               </div>

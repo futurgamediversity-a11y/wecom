@@ -18,6 +18,7 @@ import { formatXOF } from "@/lib/format";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ServiceCardSkeleton } from "@/components/ui/shimmer";
 
 export interface ServiceItem {
   id: string;
@@ -220,8 +221,10 @@ export default function ServicesPage() {
       </div>
 
       {loading ? (
-        <div className="flex min-h-64 items-center justify-center">
-          <LoadingSpinner />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <ServiceCardSkeleton key={i} />
+          ))}
         </div>
       ) : services.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-neutral-300 bg-white p-12 text-center shadow-sm">

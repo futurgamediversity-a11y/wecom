@@ -2,9 +2,12 @@
 
 import { useState, useRef } from "react";
 import Image from "next/image";
-import { Upload, X, CheckCircle2, ChevronRight, Store, Package, CreditCard } from "lucide-react";
+import { Upload, X, CheckCircle2, ChevronRight, Store, Package, CreditCard, Sparkles } from "lucide-react";
 import { LoadingCircle } from "@/components/ui/loading-spinner";
 import { formatXOF } from "@/lib/format";
+import { usePricing } from "@/lib/pricing";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const CATEGORIES = [
   "Mode",
@@ -41,6 +44,7 @@ export function StoreWizard({
   userId: string; 
   onComplete: (storeId: string) => void;
 }) {
+  const { pricing, loading: pricingLoading } = usePricing();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -62,11 +66,12 @@ export function StoreWizard({
   const [prodImg, setProdImg] = useState<File | null>(null);
   const [prodImgPrev, setProdImgPrev] = useState("");
 
-  // Step 3: Plan
-  const [plan, setPlan] = useState<"monthly" | "annual">("monthly");
+  // Step 3: Plan from Firestore config/pricing
+  const [plan, setPlan] = useState<"monthly" | "quarterly" | "annual">("monthly");
   
-  const monthlyPrice = process.env.NEXT_PUBLIC_PLAN_MONTHLY_PRICE || "5000";
-  const annualPrice = process.env.NEXT_PUBLIC_PLAN_ANNUAL_PRICE || "50000";
+  const monthlyPrice = pricing.seller.mensuel;
+  const quarterlyPrice = pricing.seller.trimestriel;
+  const annualPrice = pricing.seller.annuel;
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>, setFile: any, setPrev: any) => {
     const file = e.target.files?.[0];
@@ -125,9 +130,59 @@ export function StoreWizard({
         console.warn("sessionStorage warning:", storageErr);
       }
 
-      // 3. Initiate GeniusPay payment session with explicit success and cancel endpoints
-      const amount = plan === "monthly" ? Number(monthlyPrice) : Number(annualPrice);
+      // 3. Initiate payment or instant activation based on pricing
+      const amount =
+        plan === "monthly"
+          ? monthlyPrice
+          : plan === "quarterly"
+          ? quarterlyPrice
+          : annualPrice;
+
+      // 0 FCFA Plan: instant activation in Firestore directly!
+      if (amount === 0) {
+        const storeRef = await addDoc(collection(db, "stores"), {
+          ownerId: userId,
+          storeName,
+          name: storeName,
+          description: storeDesc,
+          category: storeCategory,
+          profileImageUrl: logoUrl,
+          image: logoUrl,
+          bannerImageUrl: bannerUrl,
+          banner: bannerUrl,
+          plan: "monthly",
+          isActive: true,
+          isPaid: true,
+          createdAt: serverTimestamp(),
+        });
+
+        await addDoc(collection(db, "products"), {
+          storeId: storeRef.id,
+          sellerId: userId,
+          name: prodName,
+          price: Number(prodPrice),
+          description: prodDesc,
+          quantity: Number(prodQty),
+          category: storeCategory,
+          imageUrl: prodUrl,
+          imageUrls: [prodUrl],
+          status: "active",
+          createdAt: serverTimestamp(),
+        });
+
+        onComplete(storeRef.id);
+        return;
+      }
+
+      // Paid plans: redirect to GeniusPay
       const origin = window.location.origin;
+      const planLabel =
+        plan === "monthly"
+          ? "Mensuel"
+          : plan === "quarterly"
+          ? "Trimestriel"
+          : "Annuel";
+
       const res = await fetch("/api/geniuspay/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -135,7 +190,7 @@ export function StoreWizard({
           amount,
           returnUrl: `${origin}/seller/dashboard?payment_success=true`,
           cancelUrl: `${origin}/seller/dashboard?payment_cancelled=true`,
-          description: `Abonnement W-COM Vente (${plan === "monthly" ? "Mensuel" : "Annuel"}) - ${storeName}`,
+          description: `Abonnement W-COM Vente (${planLabel}) - ${storeName}`,
         }),
       });
       
@@ -322,111 +377,165 @@ export function StoreWizard({
               </div>
               <p className="text-sm text-neutral-500 mb-6 -mt-4">Sélectionnez l'abonnement Wcom Vente adapté à votre business.</p>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                {/* Monthly */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                {/* 1. Monthly Plan (0 FCFA) */}
                 <div
                   onClick={() => setPlan("monthly")}
-                  className={`cursor-pointer rounded-2xl p-6 transition-all duration-200 border-2 ${
+                  className={`cursor-pointer rounded-2xl p-5 transition-all duration-200 border-2 ${
                     plan === "monthly"
                       ? "bg-wcom-green border-wcom-green text-white shadow-xl shadow-wcom-green/25 ring-4 ring-wcom-green/20"
                       : "bg-white border-neutral-200 text-neutral-900 hover:border-neutral-300 hover:shadow-md"
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-4">
+                  <div className="flex justify-between items-start mb-3">
                     <div>
-                      <h4 className={`font-black text-lg ${plan === "monthly" ? "text-white" : "text-neutral-900"}`}>
+                      <h4 className={`font-black text-base ${plan === "monthly" ? "text-white" : "text-neutral-900"}`}>
                         Plan Mensuel
                       </h4>
-                      <span className={`inline-block text-[11px] font-bold mt-1 rounded-full px-2.5 py-0.5 ${
+                      <span className={`inline-block text-[10px] font-bold mt-1 rounded-full px-2.5 py-0.5 ${
                         plan === "monthly" ? "bg-white/20 text-white" : "bg-neutral-100 text-neutral-600"
                       }`}>
-                        Sans engagement
+                        {monthlyPrice === 0 ? "Gratuit" : "Sans engagement"}
                       </span>
                     </div>
                     {plan === "monthly" ? (
                       <div className="rounded-full bg-white p-1 text-wcom-green shadow-sm">
-                        <CheckCircle2 className="h-5 w-5" />
+                        <CheckCircle2 className="h-4 w-4" />
                       </div>
                     ) : (
-                      <div className="h-6 w-6 rounded-full border-2 border-neutral-300" />
+                      <div className="h-5 w-5 rounded-full border-2 border-neutral-300" />
                     )}
                   </div>
 
-                  <div className="mb-4">
-                    <span className={`text-3xl font-black ${plan === "monthly" ? "text-white" : "text-neutral-900"}`}>
-                      {formatXOF(Number(monthlyPrice))}
+                  <div className="mb-3">
+                    <span className={`text-2xl font-black ${plan === "monthly" ? "text-white" : "text-neutral-900"}`}>
+                      {monthlyPrice === 0 ? "0 FCFA" : formatXOF(monthlyPrice)}
                     </span>
                     <span className={`text-xs font-semibold ${plan === "monthly" ? "text-white/80" : "text-neutral-500"}`}>
                       {" "}/ mois
                     </span>
                   </div>
 
-                  <ul className={`text-sm font-medium space-y-2.5 ${plan === "monthly" ? "text-white/95" : "text-neutral-600"}`}>
-                    <li className="flex items-center gap-2">
+                  <ul className={`text-xs font-medium space-y-2 ${plan === "monthly" ? "text-white/95" : "text-neutral-600"}`}>
+                    <li className="flex items-center gap-1.5">
                       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "monthly" ? "bg-white" : "bg-wcom-green"}`} />
-                      <span>Commission de 5% sur les ventes</span>
+                      <span>Commission 5%</span>
                     </li>
-                    <li className="flex items-center gap-2">
+                    <li className="flex items-center gap-1.5">
                       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "monthly" ? "bg-white" : "bg-wcom-green"}`} />
-                      <span>Accès complet au tableau de bord</span>
+                      <span>Accès catalogue & ventes</span>
                     </li>
-                    <li className="flex items-center gap-2">
+                    <li className="flex items-center gap-1.5">
                       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "monthly" ? "bg-white" : "bg-wcom-green"}`} />
                       <span>Support standard</span>
                     </li>
                   </ul>
                 </div>
 
-                {/* Annual */}
+                {/* 2. Quarterly Plan (13 500 FCFA) */}
+                <div
+                  onClick={() => setPlan("quarterly")}
+                  className={`cursor-pointer rounded-2xl p-5 transition-all duration-200 border-2 ${
+                    plan === "quarterly"
+                      ? "bg-wcom-green border-wcom-green text-white shadow-xl shadow-wcom-green/25 ring-4 ring-wcom-green/20"
+                      : "bg-white border-neutral-200 text-neutral-900 hover:border-neutral-300 hover:shadow-md"
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h4 className={`font-black text-base ${plan === "quarterly" ? "text-white" : "text-neutral-900"}`}>
+                        Plan Trimestriel
+                      </h4>
+                      <span className={`inline-block text-[10px] font-bold mt-1 rounded-full px-2.5 py-0.5 ${
+                        plan === "quarterly" ? "bg-white/20 text-white" : "bg-purple-100 text-purple-800"
+                      }`}>
+                        3 mois
+                      </span>
+                    </div>
+                    {plan === "quarterly" ? (
+                      <div className="rounded-full bg-white p-1 text-wcom-green shadow-sm">
+                        <CheckCircle2 className="h-4 w-4" />
+                      </div>
+                    ) : (
+                      <div className="h-5 w-5 rounded-full border-2 border-neutral-300" />
+                    )}
+                  </div>
+
+                  <div className="mb-3">
+                    <span className={`text-2xl font-black ${plan === "quarterly" ? "text-white" : "text-neutral-900"}`}>
+                      {formatXOF(quarterlyPrice)}
+                    </span>
+                    <span className={`text-xs font-semibold ${plan === "quarterly" ? "text-white/80" : "text-neutral-500"}`}>
+                      {" "}/ 3 mois
+                    </span>
+                  </div>
+
+                  <ul className={`text-xs font-medium space-y-2 ${plan === "quarterly" ? "text-white/95" : "text-neutral-600"}`}>
+                    <li className="flex items-center gap-1.5">
+                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "quarterly" ? "bg-white" : "bg-wcom-green"}`} />
+                      <span>Commission réduite à 4%</span>
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "quarterly" ? "bg-white" : "bg-wcom-green"}`} />
+                      <span>Visibilité accrue sur le shop</span>
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "quarterly" ? "bg-white" : "bg-wcom-green"}`} />
+                      <span>Assistant Rust IA inclus</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* 3. Annual Plan (50 000 FCFA) */}
                 <div
                   onClick={() => setPlan("annual")}
-                  className={`cursor-pointer rounded-2xl p-6 transition-all duration-200 border-2 ${
+                  className={`cursor-pointer rounded-2xl p-5 transition-all duration-200 border-2 ${
                     plan === "annual"
                       ? "bg-wcom-green border-wcom-green text-white shadow-xl shadow-wcom-green/25 ring-4 ring-wcom-green/20"
                       : "bg-white border-neutral-200 text-neutral-900 hover:border-neutral-300 hover:shadow-md"
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-4">
+                  <div className="flex justify-between items-start mb-3">
                     <div>
-                      <h4 className={`font-black text-lg ${plan === "annual" ? "text-white" : "text-neutral-900"}`}>
+                      <h4 className={`font-black text-base ${plan === "annual" ? "text-white" : "text-neutral-900"}`}>
                         Plan Annuel
                       </h4>
-                      <span className={`inline-block text-[11px] font-bold mt-1 rounded-full px-2.5 py-0.5 ${
+                      <span className={`inline-block text-[10px] font-bold mt-1 rounded-full px-2.5 py-0.5 ${
                         plan === "annual" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-800"
                       }`}>
-                        2 mois offerts
+                        Top Valeur
                       </span>
                     </div>
                     {plan === "annual" ? (
                       <div className="rounded-full bg-white p-1 text-wcom-green shadow-sm">
-                        <CheckCircle2 className="h-5 w-5" />
+                        <CheckCircle2 className="h-4 w-4" />
                       </div>
                     ) : (
-                      <div className="h-6 w-6 rounded-full border-2 border-neutral-300" />
+                      <div className="h-5 w-5 rounded-full border-2 border-neutral-300" />
                     )}
                   </div>
 
-                  <div className="mb-4">
-                    <span className={`text-3xl font-black ${plan === "annual" ? "text-white" : "text-neutral-900"}`}>
-                      {formatXOF(Number(annualPrice))}
+                  <div className="mb-3">
+                    <span className={`text-2xl font-black ${plan === "annual" ? "text-white" : "text-neutral-900"}`}>
+                      {formatXOF(annualPrice)}
                     </span>
                     <span className={`text-xs font-semibold ${plan === "annual" ? "text-white/80" : "text-neutral-500"}`}>
                       {" "}/ an
                     </span>
                   </div>
 
-                  <ul className={`text-sm font-medium space-y-2.5 ${plan === "annual" ? "text-white/95" : "text-neutral-600"}`}>
-                    <li className="flex items-center gap-2">
+                  <ul className={`text-xs font-medium space-y-2 ${plan === "annual" ? "text-white/95" : "text-neutral-600"}`}>
+                    <li className="flex items-center gap-1.5">
                       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "annual" ? "bg-white" : "bg-wcom-green"}`} />
-                      <span>Commission réduite à 3%</span>
+                      <span>Commission minimale 3%</span>
                     </li>
-                    <li className="flex items-center gap-2">
+                    <li className="flex items-center gap-1.5">
                       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "annual" ? "bg-white" : "bg-wcom-green"}`} />
-                      <span>Économie de {formatXOF(Number(monthlyPrice)*12 - Number(annualPrice))}</span>
+                      <span>Badge Vendeur Vérifié</span>
                     </li>
-                    <li className="flex items-center gap-2">
+                    <li className="flex items-center gap-1.5">
                       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "annual" ? "bg-white" : "bg-wcom-green"}`} />
-                      <span>Support prioritaire & badge vendeur</span>
+                      <span>Support prioritaire 7j/7</span>
                     </li>
                   </ul>
                 </div>
@@ -458,10 +567,12 @@ export function StoreWizard({
             <button 
               onClick={handleFinish}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl bg-wcom-green px-6 md:px-8 py-3 text-sm font-bold text-white transition hover:-translate-y-px hover:bg-[#007b2f] disabled:opacity-70 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 rounded-xl bg-wcom-green px-6 md:px-8 py-3 text-sm font-bold text-white transition hover:-translate-y-px hover:bg-[#007b2f] disabled:opacity-70 disabled:cursor-not-allowed shadow-md"
             >
               {loading && <LoadingCircle className="h-4 w-4 text-white" />}
-              Lancer ma boutique
+              {plan === "monthly" && monthlyPrice === 0
+                ? "Activer ma boutique gratuitement →"
+                : `Payer et lancer (${formatXOF(plan === "monthly" ? monthlyPrice : plan === "quarterly" ? quarterlyPrice : annualPrice)}) →`}
             </button>
           )}
         </div>

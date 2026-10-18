@@ -19,6 +19,7 @@ import {
 import { type Product, type Category } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ProductGridSkeleton } from "@/components/ui/shimmer";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
@@ -48,12 +49,14 @@ function ShopContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const searchTerm = searchParams.get("search") || "";
   const [selectedCategory, setSelectedCategory] = useState("Tout");
 
   useEffect(() => {
     async function fetchProducts() {
       try {
+        setIsLoading(true);
         const querySnapshot = await getDocs(collection(db, "products"));
         const fetchedProducts = querySnapshot.docs.map(doc => {
           const data = doc.data();
@@ -77,6 +80,8 @@ function ShopContent() {
         }
       } catch (error: unknown) {
         console.error("Error fetching products from Firebase:", error);
+      } finally {
+        setIsLoading(false);
       }
     }
     
@@ -199,7 +204,11 @@ function ShopContent() {
           </Link>
         </div>
 
-        {filteredProducts.length === 0 ? (
+        {isLoading ? (
+          <div className="mt-5">
+            <ProductGridSkeleton count={8} />
+          </div>
+        ) : filteredProducts.length === 0 ? (
           <div className="mt-6 rounded-xl border border-dashed border-neutral-300 bg-white p-12 text-center">
             <p className="font-bold text-neutral-700">Aucun produit trouvé</p>
             <p className="mt-2 text-sm text-neutral-500">Essayez une autre recherche ou une autre catégorie.</p>
@@ -218,7 +227,7 @@ function ShopContent() {
 
 export default function ShopPage() {
   return (
-    <Suspense fallback={<div className="mx-auto flex min-h-64 max-w-7xl items-center py-8"><LoadingSpinner /></div>}>
+    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-8"><ProductGridSkeleton count={8} /></div>}>
       <ShopContent />
     </Suspense>
   );

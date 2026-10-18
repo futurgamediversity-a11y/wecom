@@ -72,6 +72,16 @@ const config: Config = {
       backgroundSize: {
         "dot-35": "35px 35px",
       },
+      keyframes: {
+        shimmer: {
+          "100%": {
+            transform: "translateX(100%)",
+          },
+        },
+      },
+      animation: {
+        shimmer: "shimmer 1.8s infinite",
+      },
     },
   },
   plugins: [],

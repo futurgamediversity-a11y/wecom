@@ -21,6 +21,7 @@ import { useAuth } from "@/lib/auth-context";
 import { toProduct, STORE_FALLBACK_IMAGE } from "@/lib/firestore-schema";
 import { fetchStoreProfile, type StoreProfile } from "@/lib/store";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { StoreHeaderSkeleton, ProductGridSkeleton } from "@/components/ui/shimmer";
 import { ProductCard } from "@/components/ui/product-card";
 
 function StoreContent({ storeId }: { storeId: string }) {
@@ -72,11 +73,9 @@ function StoreContent({ storeId }: { storeId: string }) {
 
   if (loading) {
     return (
-      <main className="mx-auto flex min-h-64 max-w-7xl items-center px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex w-full items-center gap-3">
-          <ArrowLeft className="h-5 w-5 cursor-pointer text-neutral-500" onClick={() => router.back()} />
-          <LoadingSpinner />
-        </div>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 animate-in fade-in duration-500">
+        <StoreHeaderSkeleton />
+        <ProductGridSkeleton count={6} />
       </main>
     );
   }
@@ -223,7 +222,14 @@ function StoreContent({ storeId }: { storeId: string }) {
 
 export default function StorePage({ params }: { params: Promise<{ storeId: string }> }) {
   return (
-    <Suspense fallback={<div className="mx-auto flex min-h-64 max-w-7xl items-center py-8"><LoadingSpinner /></div>}>
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+          <StoreHeaderSkeleton />
+          <ProductGridSkeleton count={6} />
+        </div>
+      }
+    >
       <StoreLoader params={params} />
     </Suspense>
   );

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { WComLogo } from "@/components/brand/wcom-logo";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { DashboardStatsSkeleton, DashboardProductsSkeleton } from "@/components/ui/shimmer";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 import { findStoreIdByOwner, fetchStoreProfile, type StoreProfile } from "@/lib/store";
@@ -40,6 +41,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { formatXOF } from "@/lib/format";
+import { usePricing } from "@/lib/pricing";
 import { StoreWizard } from "./wizard";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -94,6 +96,7 @@ async function uploadToCloudinary(file: File): Promise<string> {
 
 function SellerDashboardContent() {
   const { user, loading } = useAuth();
+  const { pricing, loading: pricingLoading } = usePricing();
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -118,7 +121,7 @@ function SellerDashboardContent() {
   const [editCategory, setEditCategory] = useState(CATEGORIES[0]);
   const [editPhone, setEditPhone] = useState("");
   const [editLocation, setEditLocation] = useState("");
-  const [editPlan, setEditPlan] = useState<"monthly" | "annual">("monthly");
+  const [editPlan, setEditPlan] = useState<"monthly" | "quarterly" | "annual">("monthly");
   const [editLogoFile, setEditLogoFile] = useState<File | null>(null);
   const [editBannerFile, setEditBannerFile] = useState<File | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -705,8 +708,9 @@ function SellerDashboardContent() {
       </header>
 
       {loading || isLoadingProducts ? (
-        <div className="flex-1 flex items-center justify-center py-16">
-          <LoadingSpinner />
+        <div className="mx-auto max-w-7xl w-full py-6 space-y-8 animate-in fade-in duration-500">
+          <DashboardStatsSkeleton />
+          <DashboardProductsSkeleton />
         </div>
       ) : (
         <div className="mx-auto max-w-7xl w-full py-6 animate-in fade-in duration-500">
@@ -1016,7 +1020,7 @@ function SellerDashboardContent() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
                     <button
                       type="button"
                       onClick={() => setEditPlan("monthly")}
@@ -1026,8 +1030,33 @@ function SellerDashboardContent() {
                           : "border-neutral-200 bg-white"
                       }`}
                     >
-                      <p className="text-xs font-bold text-neutral-900">Plan Mensuel</p>
-                      <span className="text-sm font-black text-wcom-green">5 000 XOF/mois</span>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-neutral-900">Mensuel</p>
+                        {pricing.seller.mensuel === 0 && (
+                          <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">Gratuit</span>
+                        )}
+                      </div>
+                      <span className="text-sm font-black text-wcom-green block mt-1">
+                        {pricing.seller.mensuel === 0 ? "0 XOF / mois" : `${formatXOF(pricing.seller.mensuel)} / mois`}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditPlan("quarterly")}
+                      className={`rounded-xl p-3 text-left border transition ${
+                        editPlan === "quarterly"
+                          ? "border-wcom-green bg-green-50/50 shadow-sm ring-2 ring-wcom-green/20"
+                          : "border-neutral-200 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-neutral-900">Trimestriel</p>
+                        <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">Populaire</span>
+                      </div>
+                      <span className="text-sm font-black text-wcom-green block mt-1">
+                        {formatXOF(pricing.seller.trimestriel)} / 3 mois
+                      </span>
                     </button>
 
                     <button
@@ -1039,8 +1068,13 @@ function SellerDashboardContent() {
                           : "border-neutral-200 bg-white"
                       }`}
                     >
-                      <p className="text-xs font-bold text-neutral-900">Plan Annuel (2 mois offerts)</p>
-                      <span className="text-sm font-black text-wcom-green">50 000 XOF/an</span>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-neutral-900">Annuel</p>
+                        <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700">VIP Pro</span>
+                      </div>
+                      <span className="text-sm font-black text-wcom-green block mt-1">
+                        {formatXOF(pricing.seller.annuel)} / an
+                      </span>
                     </button>
                   </div>
                 </div>

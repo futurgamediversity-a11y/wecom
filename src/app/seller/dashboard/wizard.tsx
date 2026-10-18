@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import Image from "next/image";
 import { Upload, X, CheckCircle2, ChevronRight, Store, Package, CreditCard } from "lucide-react";
 import { LoadingCircle } from "@/components/ui/loading-spinner";
+import { formatXOF } from "@/lib/format";
 
 const CATEGORIES = [
   "Mode",
@@ -325,48 +326,108 @@ export function StoreWizard({
                 {/* Monthly */}
                 <div
                   onClick={() => setPlan("monthly")}
-                  className={`cursor-pointer rounded-2xl p-6 transition-all shadow-md ${
+                  className={`cursor-pointer rounded-2xl p-6 transition-all duration-200 border-2 ${
                     plan === "monthly"
-                      ? "bg-wcom-green shadow-lg shadow-wcom-green/30"
-                      : "bg-white hover:shadow-lg"
+                      ? "bg-wcom-green border-wcom-green text-white shadow-xl shadow-wcom-green/25 ring-4 ring-wcom-green/20"
+                      : "bg-white border-neutral-200 text-neutral-900 hover:border-neutral-300 hover:shadow-md"
                   }`}
                 >
                   <div className="flex justify-between items-start mb-4">
-                    <h4 className="font-bold text-lg text-wcom-ink">Plan Mensuel</h4>
-                    {plan === "monthly" && <CheckCircle2 className="text-wcom-green h-6 w-6" />}
+                    <div>
+                      <h4 className={`font-black text-lg ${plan === "monthly" ? "text-white" : "text-neutral-900"}`}>
+                        Plan Mensuel
+                      </h4>
+                      <span className={`inline-block text-[11px] font-bold mt-1 rounded-full px-2.5 py-0.5 ${
+                        plan === "monthly" ? "bg-white/20 text-white" : "bg-neutral-100 text-neutral-600"
+                      }`}>
+                        Sans engagement
+                      </span>
+                    </div>
+                    {plan === "monthly" ? (
+                      <div className="rounded-full bg-white p-1 text-wcom-green shadow-sm">
+                        <CheckCircle2 className="h-5 w-5" />
+                      </div>
+                    ) : (
+                      <div className="h-6 w-6 rounded-full border-2 border-neutral-300" />
+                    )}
                   </div>
+
                   <div className="mb-4">
-                    <span className="text-3xl font-black">{monthlyPrice}</span>
-                    <span className="text-neutral-500 font-medium"> FCFA / mois</span>
+                    <span className={`text-3xl font-black ${plan === "monthly" ? "text-white" : "text-neutral-900"}`}>
+                      {formatXOF(Number(monthlyPrice))}
+                    </span>
+                    <span className={`text-xs font-semibold ${plan === "monthly" ? "text-white/80" : "text-neutral-500"}`}>
+                      {" "}/ mois
+                    </span>
                   </div>
-                  <ul className="text-sm text-neutral-600 font-medium space-y-2">
-                    <li>• Commission de 5% sur les ventes</li>
-                    <li>• Accès complet au tableau de bord</li>
-                    <li>• Support standard</li>
+
+                  <ul className={`text-sm font-medium space-y-2.5 ${plan === "monthly" ? "text-white/95" : "text-neutral-600"}`}>
+                    <li className="flex items-center gap-2">
+                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "monthly" ? "bg-white" : "bg-wcom-green"}`} />
+                      <span>Commission de 5% sur les ventes</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "monthly" ? "bg-white" : "bg-wcom-green"}`} />
+                      <span>Accès complet au tableau de bord</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "monthly" ? "bg-white" : "bg-wcom-green"}`} />
+                      <span>Support standard</span>
+                    </li>
                   </ul>
                 </div>
 
                 {/* Annual */}
                 <div
                   onClick={() => setPlan("annual")}
-                  className={`cursor-pointer rounded-2xl p-6 transition-all shadow-md ${
+                  className={`cursor-pointer rounded-2xl p-6 transition-all duration-200 border-2 ${
                     plan === "annual"
-                      ? "bg-wcom-green shadow-lg shadow-wcom-green/30"
-                      : "bg-white hover:shadow-lg"
+                      ? "bg-wcom-green border-wcom-green text-white shadow-xl shadow-wcom-green/25 ring-4 ring-wcom-green/20"
+                      : "bg-white border-neutral-200 text-neutral-900 hover:border-neutral-300 hover:shadow-md"
                   }`}
                 >
                   <div className="flex justify-between items-start mb-4">
-                    <h4 className="font-bold text-lg text-wcom-ink">Plan Annuel</h4>
-                    {plan === "annual" && <CheckCircle2 className="text-wcom-green h-6 w-6" />}
+                    <div>
+                      <h4 className={`font-black text-lg ${plan === "annual" ? "text-white" : "text-neutral-900"}`}>
+                        Plan Annuel
+                      </h4>
+                      <span className={`inline-block text-[11px] font-bold mt-1 rounded-full px-2.5 py-0.5 ${
+                        plan === "annual" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-800"
+                      }`}>
+                        2 mois offerts
+                      </span>
+                    </div>
+                    {plan === "annual" ? (
+                      <div className="rounded-full bg-white p-1 text-wcom-green shadow-sm">
+                        <CheckCircle2 className="h-5 w-5" />
+                      </div>
+                    ) : (
+                      <div className="h-6 w-6 rounded-full border-2 border-neutral-300" />
+                    )}
                   </div>
+
                   <div className="mb-4">
-                    <span className="text-3xl font-black">{annualPrice}</span>
-                    <span className="text-neutral-500 font-medium"> FCFA / an</span>
+                    <span className={`text-3xl font-black ${plan === "annual" ? "text-white" : "text-neutral-900"}`}>
+                      {formatXOF(Number(annualPrice))}
+                    </span>
+                    <span className={`text-xs font-semibold ${plan === "annual" ? "text-white/80" : "text-neutral-500"}`}>
+                      {" "}/ an
+                    </span>
                   </div>
-                  <ul className="text-sm text-neutral-600 font-medium space-y-2">
-                    <li>• Commission réduite à 3%</li>
-                    <li>• Économie de {Number(monthlyPrice)*12 - Number(annualPrice)} FCFA</li>
-                    <li>• Support prioritaire</li>
+
+                  <ul className={`text-sm font-medium space-y-2.5 ${plan === "annual" ? "text-white/95" : "text-neutral-600"}`}>
+                    <li className="flex items-center gap-2">
+                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "annual" ? "bg-white" : "bg-wcom-green"}`} />
+                      <span>Commission réduite à 3%</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "annual" ? "bg-white" : "bg-wcom-green"}`} />
+                      <span>Économie de {formatXOF(Number(monthlyPrice)*12 - Number(annualPrice))}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "annual" ? "bg-white" : "bg-wcom-green"}`} />
+                      <span>Support prioritaire & badge vendeur</span>
+                    </li>
                   </ul>
                 </div>
               </div>

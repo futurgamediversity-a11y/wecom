@@ -464,8 +464,8 @@ function SellerDashboardContent() {
     setErrorMsg("");
 
     try {
-      let logoUrl = storeProfile?.image;
-      let bannerUrl = storeProfile?.banner;
+      let logoUrl = storeProfile?.image || "/images/app_icon.png";
+      let bannerUrl = storeProfile?.banner || "";
 
       if (editLogoFile) {
         logoUrl = await uploadToCloudinary(editLogoFile);

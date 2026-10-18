@@ -1032,12 +1032,10 @@ function SellerDashboardContent() {
                     >
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-bold text-neutral-900">Mensuel</p>
-                        {pricing.seller.mensuel === 0 && (
-                          <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">Gratuit</span>
-                        )}
+                        <span className="rounded-full bg-neutral-100 px-1.5 py-0.5 text-[9px] font-bold text-neutral-700">Flexible</span>
                       </div>
                       <span className="text-sm font-black text-wcom-green block mt-1">
-                        {pricing.seller.mensuel === 0 ? "0 XOF / mois" : `${formatXOF(pricing.seller.mensuel)} / mois`}
+                        {formatXOF(pricing.seller.mensuel)} / mois
                       </span>
                     </button>
 

@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Package, TrendingUp, Eye, ShoppingBag, Star, X } from "lucide-react";
-import { doc, getDoc, collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import { ArrowLeft, Package, TrendingUp, Eye, ShoppingBag, Star, X, Trash2 } from "lucide-react";
+import { doc, getDoc, collection, getDocs, query, where, orderBy, limit, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatXOF } from "@/lib/format";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { LoadingCircle, LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/lib/auth-context";
 
 interface ProductData {
@@ -38,8 +38,24 @@ export default function SellerProductDetail({ id }: { id: string }) {
   const [totalSold, setTotalSold] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [recentOrders, setRecentOrders] = useState<OrderItem[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
+
+  const handleDelete = async () => {
+    if (!product) return;
+    setIsDeleting(true);
+    try {
+      await deleteDoc(doc(db, "products", product.id));
+      router.replace("/seller/dashboard");
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+      alert("Une erreur est survenue lors de la suppression de l'article.");
+    }
+  };
 
   useEffect(() => {
     async function fetchProductData() {
@@ -127,15 +143,27 @@ export default function SellerProductDetail({ id }: { id: string }) {
       <div className="mb-8">
         <button
           onClick={() => router.back()}
-          className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-600 hover:text-wcom-orange"
+          className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-600 hover:text-wcom-orange transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Retour au tableau de bord
         </button>
-        <h1 className="text-3xl font-black">{product.name}</h1>
-        <p className="mt-2 text-sm text-neutral-500">
-          Créé le {product.createdAt.toLocaleDateString('fr-FR')}
-        </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-black text-neutral-900">{product.name}</h1>
+            <p className="mt-2 text-sm text-neutral-500">
+              Créé le {product.createdAt.toLocaleDateString('fr-FR')}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            className="flex items-center gap-2 self-start sm:self-auto rounded-xl border border-red-200 bg-red-50/80 px-4 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-100 hover:border-red-300 shadow-sm"
+          >
+            <Trash2 className="h-4 w-4" />
+            Supprimer l'article
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
@@ -270,6 +298,54 @@ export default function SellerProductDetail({ id }: { id: string }) {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600 mb-4">
+              <Trash2 className="h-6 w-6" />
+            </div>
+            <h3 className="text-xl font-black text-neutral-900">
+              Supprimer cet article ?
+            </h3>
+            <p className="mt-2 text-sm text-neutral-500">
+              Êtes-vous sûr de vouloir supprimer définitivement{" "}
+              <strong className="text-neutral-800">« {product.name} »</strong> ?
+              Cette action est irréversible et le produit sera retiré de votre boutique.
+            </p>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 rounded-xl border border-neutral-200 py-3 text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDelete}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-bold text-white shadow-lg shadow-red-600/20 hover:bg-red-700 transition disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <LoadingCircle className="h-4 w-4" />
+                    Suppression…
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    Supprimer
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

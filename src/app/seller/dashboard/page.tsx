@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Search,
+  Trash2,
 } from "lucide-react";
 import { WComLogo } from "@/components/brand/wcom-logo";
 import { LoadingCircle, LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -28,6 +29,8 @@ import {
   where,
   Timestamp,
   orderBy,
+  deleteDoc,
+  doc,
 } from "firebase/firestore";
 import { formatXOF } from "@/lib/format";
 import { StoreWizard } from "./wizard";
@@ -102,6 +105,8 @@ export default function SellerDashboardPage() {
   const [storeLookupDone, setStoreLookupDone] = useState(false);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<SellerProduct | null>(null);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
 
   // Authentication & Store lookup
   useEffect(() => {
@@ -301,6 +306,24 @@ export default function SellerDashboardPage() {
     }
   }
 
+  async function handleDeleteProduct() {
+    if (!productToDelete) return;
+    setIsDeletingProduct(true);
+    try {
+      await deleteDoc(doc(db, "products", productToDelete.id));
+      setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
+      setSuccessMsg(`L'article "${productToDelete.name}" a été supprimé avec succès.`);
+      setProductToDelete(null);
+      setTimeout(() => setSuccessMsg(""), 4000);
+    } catch (err) {
+      console.error("Error deleting product:", err);
+      setErrorMsg("Erreur lors de la suppression de l'article.");
+      setTimeout(() => setErrorMsg(""), 4000);
+    } finally {
+      setIsDeletingProduct(false);
+    }
+  }
+
   if (storeLookupDone && !storeId) {
     return (
       <main className="min-h-screen bg-wcom-offwhite flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700">
@@ -490,48 +513,70 @@ export default function SellerDashboardPage() {
           ) : (
             <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredProducts.map((p) => (
-                <Link
+                <div
                   key={p.id}
-                  href={`/seller/product/${p.id}`}
-                  className="overflow-hidden rounded-xl bg-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+                  className="group flex flex-col justify-between overflow-hidden rounded-xl bg-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
                 >
-                  <div className="relative aspect-square w-full bg-neutral-100">
-                    {p.imageUrl ? (
-                      <Image
-                        src={p.imageUrl}
-                        alt={p.name}
-                        fill
-                        sizes="260px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-neutral-300">
-                        <Package className="h-10 w-10" />
-                      </div>
-                    )}
-                    <span
-                      className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${
-                        p.status === "active"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-neutral-100 text-neutral-500"
-                      }`}
-                    >
-                      {p.status === "active" ? "Actif" : "Inactif"}
-                    </span>
-                  </div>
-                  <div className="p-4">
-                    <p className="line-clamp-1 text-sm font-bold">{p.name}</p>
-                    <p className="text-xs text-neutral-400">{p.category}</p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-base font-black text-wcom-orange">
-                        {formatXOF(p.price)}
-                      </span>
-                      <span className="text-xs text-neutral-500">
-                        Stock: {p.quantity}
+                  <Link
+                    href={`/seller/product/${p.id}`}
+                    className="block flex-1"
+                  >
+                    <div className="relative aspect-square w-full bg-neutral-100">
+                      {p.imageUrl ? (
+                        <Image
+                          src={p.imageUrl}
+                          alt={p.name}
+                          fill
+                          sizes="260px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-neutral-300">
+                          <Package className="h-10 w-10" />
+                        </div>
+                      )}
+                      <span
+                        className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${
+                          p.status === "active"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-neutral-100 text-neutral-500"
+                        }`}
+                      >
+                        {p.status === "active" ? "Actif" : "Inactif"}
                       </span>
                     </div>
+                    <div className="p-4">
+                      <p className="line-clamp-1 text-sm font-bold text-neutral-800">{p.name}</p>
+                      <p className="text-xs text-neutral-400">{p.category}</p>
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-base font-black text-wcom-orange">
+                          {formatXOF(p.price)}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+
+                  {/* Card footer with stock & delete action */}
+                  <div className="flex items-center justify-between border-t border-neutral-100 px-4 py-2.5 bg-neutral-50/70">
+                    <span className="text-xs font-semibold text-neutral-500">
+                      Stock: {p.quantity}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setProductToDelete(p);
+                      }}
+                      className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold text-red-500 transition hover:bg-red-50 hover:text-red-700"
+                      title="Supprimer cet article"
+                      aria-label="Supprimer cet article"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Supprimer</span>
+                    </button>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
@@ -717,6 +762,54 @@ export default function SellerDashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600 mb-4">
+              <Trash2 className="h-6 w-6" />
+            </div>
+            <h3 className="text-xl font-black text-neutral-900">
+              Supprimer cet article ?
+            </h3>
+            <p className="mt-2 text-sm text-neutral-500">
+              Êtes-vous sûr de vouloir supprimer définitivement{" "}
+              <strong className="text-neutral-800">« {productToDelete.name} »</strong> ?
+              Cette action est irréversible et retirera le produit de votre boutique.
+            </p>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                disabled={isDeletingProduct}
+                onClick={() => setProductToDelete(null)}
+                className="flex-1 rounded-xl border border-neutral-200 py-3 text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingProduct}
+                onClick={handleDeleteProduct}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-bold text-white shadow-lg shadow-red-600/20 hover:bg-red-700 transition disabled:opacity-50"
+              >
+                {isDeletingProduct ? (
+                  <>
+                    <LoadingCircle />
+                    Suppression…
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    Supprimer
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

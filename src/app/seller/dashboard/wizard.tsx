@@ -495,7 +495,7 @@ export function StoreWizard({
                     </li>
                     <li className="flex items-center gap-1.5">
                       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${plan === "quarterly" ? "bg-white" : "bg-wcom-green"}`} />
-                      <span>Assistant Rust IA inclus</span>
+                      <span>Assistant Repos IA inclus</span>
                     </li>
                   </ul>
                 </div>

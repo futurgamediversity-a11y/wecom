@@ -70,7 +70,7 @@ interface SellerProduct {
 
 interface ChatMessage {
   id: string;
-  sender: "user" | "rust";
+  sender: "user" | "repos";
   text: string;
   time: string;
 }
@@ -145,18 +145,18 @@ function SellerDashboardContent() {
   const [productToDelete, setProductToDelete] = useState<SellerProduct | null>(null);
   const [isDeletingProduct, setIsDeletingProduct] = useState(false);
 
-  // Rust AI state
-  const [isRustOpen, setIsRustOpen] = useState(false);
-  const [rustMessages, setRustMessages] = useState<ChatMessage[]>([
+  // Repos AI state
+  const [isReposOpen, setIsReposOpen] = useState(false);
+  const [reposMessages, setReposMessages] = useState<ChatMessage[]>([
     {
       id: "m0",
-      sender: "rust",
-      text: "Bonjour ! Je suis Rust, votre conseiller IA W-COM. Je suis connecté aux données de vos ventes, de vos stocks et de vos revenus. Comment puis-je vous aider aujourd'hui ?",
+      sender: "repos",
+      text: "Bonjour ! Je suis Repos, votre conseiller IA W-COM. Je suis connecté aux données de vos ventes, de vos stocks et de vos revenus. Comment puis-je vous aider aujourd'hui ?",
       time: "Maintenant",
     },
   ]);
-  const [rustInput, setRustInput] = useState("");
-  const [rustLoading, setRustLoading] = useState(false);
+  const [reposInput, setReposInput] = useState("");
+  const [reposLoading, setReposLoading] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   // 1. Handle GeniusPay Payment Callbacks (Security Check)
@@ -382,15 +382,15 @@ function SellerDashboardContent() {
 
   // Auto scroll chat
   useEffect(() => {
-    if (isRustOpen) {
+    if (isReposOpen) {
       chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [rustMessages, isRustOpen]);
+  }, [reposMessages, isReposOpen]);
 
-  // Send message to Rust AI
-  const handleSendRustMessage = async (textToSend?: string) => {
-    const text = (textToSend || rustInput).trim();
-    if (!text || rustLoading) return;
+  // Send message to Repos AI
+  const handleSendReposMessage = async (textToSend?: string) => {
+    const text = (textToSend || reposInput).trim();
+    if (!text || reposLoading) return;
 
     const userMsg: ChatMessage = {
       id: "u_" + Date.now(),
@@ -399,12 +399,12 @@ function SellerDashboardContent() {
       time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
     };
 
-    setRustMessages((prev) => [...prev, userMsg]);
-    setRustInput("");
-    setRustLoading(true);
+    setReposMessages((prev) => [...prev, userMsg]);
+    setReposInput("");
+    setReposLoading(true);
 
     try {
-      const res = await fetch("/api/ai/rust", {
+      const res = await fetch("/api/ai/repos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -423,35 +423,35 @@ function SellerDashboardContent() {
               category: p.category,
             })),
           },
-          history: rustMessages.slice(-6),
+          history: reposMessages.slice(-6),
         }),
       });
 
       const data = await res.json();
       const replyText = data.reply || "Je n'ai pas pu analyser la demande. Veuillez réessayer.";
 
-      setRustMessages((prev) => [
+      setReposMessages((prev) => [
         ...prev,
         {
           id: "r_" + Date.now(),
-          sender: "rust",
+          sender: "repos",
           text: replyText,
           time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
     } catch (err) {
-      console.error("Erreur Rust AI:", err);
-      setRustMessages((prev) => [
+      console.error("Erreur Repos AI:", err);
+      setReposMessages((prev) => [
         ...prev,
         {
           id: "r_err_" + Date.now(),
-          sender: "rust",
+          sender: "repos",
           text: "Désolé, une petite coupure réseau m'empêche de vous répondre. Vérifiez votre connexion et reposez-moi votre question !",
           time: "Erreur",
         },
       ]);
     } finally {
-      setRustLoading(false);
+      setReposLoading(false);
     }
   };
 
@@ -668,13 +668,13 @@ function SellerDashboardContent() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Quick Rust AI Assistant button */}
+            {/* Quick Repos AI Assistant button */}
             <button
-              onClick={() => setIsRustOpen(true)}
+              onClick={() => setIsReposOpen(true)}
               className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-3.5 py-2 text-xs font-bold text-white shadow-md shadow-orange-500/20 hover:opacity-95 transition transform active:scale-95"
             >
               <Bot className="h-4 w-4 animate-pulse" />
-              <span>Rust IA</span>
+              <span>Repos IA</span>
             </button>
 
             <Link
@@ -941,17 +941,17 @@ function SellerDashboardContent() {
                     <Bot className="h-6 w-6 text-wcom-orange" />
                     <div>
                       <p className="text-xs font-bold text-neutral-900">Besoin d'une analyse détaillée de vos revenus ?</p>
-                      <p className="text-xs text-neutral-500">Demandez à Rust IA de vous expliquer vos tendances de vente.</p>
+                      <p className="text-xs text-neutral-500">Demandez à Repos IA de vous expliquer vos tendances de vente.</p>
                     </div>
                   </div>
                   <button
                     onClick={() => {
-                      setIsRustOpen(true);
-                      handleSendRustMessage("Fais-moi une analyse détaillée de mes revenus ce mois-ci.");
+                      setIsReposOpen(true);
+                      handleSendReposMessage("Fais-moi une analyse détaillée de mes revenus ce mois-ci.");
                     }}
                     className="rounded-xl bg-neutral-900 px-4 py-2 text-xs font-bold text-white hover:bg-neutral-800 transition"
                   >
-                    Analyser avec Rust →
+                    Analyser avec Repos →
                   </button>
                 </div>
               </div>
@@ -1118,11 +1118,11 @@ function SellerDashboardContent() {
         </div>
       )}
 
-      {/* RUST AI CHATBOT DRAWER / WIDGET */}
-      {isRustOpen && (
+      {/* REPOS AI CHATBOT DRAWER / WIDGET */}
+      {isReposOpen && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-end p-0 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => setIsRustOpen(false)}
+          onClick={() => setIsReposOpen(false)}
         >
           <div
             className="w-full sm:max-w-md h-[85vh] sm:h-[650px] rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300 border border-neutral-200"
@@ -1137,7 +1137,7 @@ function SellerDashboardContent() {
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <h3 className="font-black text-sm">Rust IA</h3>
+                    <h3 className="font-black text-sm">Repos IA</h3>
                     <span className="rounded-full bg-orange-500/30 text-orange-400 border border-orange-500/40 px-2 py-0.2 text-[10px] font-bold">
                       Google Gemini
                     </span>
@@ -1147,7 +1147,7 @@ function SellerDashboardContent() {
               </div>
 
               <button
-                onClick={() => setIsRustOpen(false)}
+                onClick={() => setIsReposOpen(false)}
                 className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white transition"
               >
                 <X className="h-5 w-5" />
@@ -1156,12 +1156,12 @@ function SellerDashboardContent() {
 
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-neutral-50/70">
-              {rustMessages.map((m) => (
+              {reposMessages.map((m) => (
                 <div
                   key={m.id}
                   className={`flex gap-2.5 ${m.sender === "user" ? "justify-end" : "justify-start"}`}
                 >
-                  {m.sender === "rust" && (
+                  {m.sender === "repos" && (
                     <div className="grid h-8 w-8 place-items-center rounded-xl bg-orange-500 text-white shrink-0 mt-0.5 shadow-sm">
                       <Bot className="h-4 w-4" />
                     </div>
@@ -1182,7 +1182,7 @@ function SellerDashboardContent() {
                 </div>
               ))}
 
-              {rustLoading && (
+              {reposLoading && (
                 <div className="flex gap-2.5 items-center text-neutral-400 text-xs py-2">
                   <div className="grid h-8 w-8 place-items-center rounded-xl bg-orange-500 text-white shrink-0 shadow-sm animate-pulse">
                     <Bot className="h-4 w-4" />
@@ -1208,7 +1208,7 @@ function SellerDashboardContent() {
               ].map((pill) => (
                 <button
                   key={pill}
-                  onClick={() => handleSendRustMessage(pill)}
+                  onClick={() => handleSendReposMessage(pill)}
                   className="rounded-full bg-neutral-100 hover:bg-neutral-200 px-3 py-1 text-[11px] font-semibold text-neutral-700 whitespace-nowrap transition"
                 >
                   {pill}
@@ -1220,20 +1220,20 @@ function SellerDashboardContent() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleSendRustMessage();
+                handleSendReposMessage();
               }}
               className="p-3 border-t border-neutral-200 bg-white flex gap-2 shrink-0"
             >
               <input
                 type="text"
-                value={rustInput}
-                onChange={(e) => setRustInput(e.target.value)}
-                placeholder="Posez une question à Rust..."
+                value={reposInput}
+                onChange={(e) => setReposInput(e.target.value)}
+                placeholder="Posez une question à Repos..."
                 className="flex-1 h-11 rounded-2xl bg-neutral-100 px-4 text-xs sm:text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/30 border border-transparent focus:border-orange-500"
               />
               <button
                 type="submit"
-                disabled={!rustInput.trim() || rustLoading}
+                disabled={!reposInput.trim() || reposLoading}
                 className="grid h-11 w-11 place-items-center rounded-2xl bg-orange-500 hover:bg-orange-600 text-white transition disabled:opacity-40 shadow-md shadow-orange-500/20 shrink-0"
               >
                 <Send className="h-4 w-4" />
@@ -1243,17 +1243,17 @@ function SellerDashboardContent() {
         </div>
       )}
 
-      {/* Floating Rust Trigger Button */}
-      {!isRustOpen && (
+      {/* Floating Repos Trigger Button */}
+      {!isReposOpen && (
         <button
-          onClick={() => setIsRustOpen(true)}
+          onClick={() => setIsReposOpen(true)}
           className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3 text-white shadow-xl shadow-orange-500/30 hover:scale-105 active:scale-95 transition-all duration-200"
         >
           <div className="relative">
             <Bot className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-emerald-400 border border-neutral-900" />
           </div>
-          <span className="text-xs font-black">Rust IA</span>
+          <span className="text-xs font-black">Repos IA</span>
         </button>
       )}
 

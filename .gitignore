@@ -45,3 +45,5 @@ next-env.d.ts
 test-*.js
 test-*.ts
 test.html
+capture.py
+shot_*.png

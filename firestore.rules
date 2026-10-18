@@ -14,14 +14,19 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Boutiques : lecture publique, création par tout utilisateur connecté, mise à jour par le propriétaire
+    // Boutiques : annuaire public, règles de sécurité de production
     match /stores/{storeId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && (
-        resource.data.ownerId == request.auth.uid || 
-        resource.data.userId == request.auth.uid
-      );
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid &&
+        (!('isActive' in request.resource.data) || request.resource.data.isActive == false) &&
+        !('currentPlan' in request.resource.data);
+      allow update: if request.auth != null &&
+        ((resource.data.ownerId == request.auth.uid &&
+          !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['isActive', 'currentPlan'])) ||
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['averageRating', 'reviewCount', 'subscriberCount']));
+      allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
     }
     
     // Produits : lecture publique, création et modification par les utilisateurs authentifiés

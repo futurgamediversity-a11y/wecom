@@ -181,7 +181,10 @@ function SellerDashboardContent() {
           const createValidatedStore = async () => {
             setIsLoadingProducts(true);
             try {
-              // Create verified store with isActive: true
+              // Create store adhering strictly to Firestore security rules:
+              // - ownerId must match user.uid
+              // - isActive must be omitted or false
+              // - currentPlan must not be included
               const storeRef = await addDoc(collection(db, "stores"), {
                 ownerId: user.uid,
                 storeName: setup.storeName,
@@ -193,7 +196,6 @@ function SellerDashboardContent() {
                 bannerImageUrl: setup.bannerUrl,
                 banner: setup.bannerUrl,
                 plan: setup.plan,
-                isActive: true,
                 isPaid: true,
                 createdAt: serverTimestamp(),
               });

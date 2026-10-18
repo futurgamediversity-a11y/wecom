@@ -169,55 +169,16 @@ export function StoreWizard({
         throw new Error("Session expirée. Veuillez vous reconnecter avant de lancer la boutique.");
       }
 
-      // When amount === 0: activate immediately in Firestore
+      const origin = window.location.origin;
+
+      // Free / promotional plan (0 XOF): directly trigger post-payment success
+      // Store creation only executes AFTER payment validation in page.tsx
       if (amount === 0) {
-        const storeRef = await addDoc(collection(db, "stores"), {
-          ownerId: activeUid,
-          storeName,
-          name: storeName,
-          description: storeDesc,
-          category: storeCategory,
-          profileImageUrl: logoUrl,
-          image: logoUrl,
-          bannerImageUrl: bannerUrl,
-          banner: bannerUrl,
-          plan,
-          isActive: true,
-          isPaid: true,
-          createdAt: serverTimestamp(),
-        });
-
-        // Update user document with seller role & storeId
-        try {
-          await updateDoc(doc(db, "users", activeUid), {
-            storeId: storeRef.id,
-            role: "seller",
-            updatedAt: serverTimestamp(),
-          });
-        } catch (uErr) {
-          console.warn("Could not update user doc with storeId:", uErr);
-        }
-
-        await addDoc(collection(db, "products"), {
-          storeId: storeRef.id,
-          sellerId: activeUid,
-          name: prodName,
-          price: Number(prodPrice),
-          description: prodDesc,
-          quantity: Number(prodQty),
-          category: storeCategory,
-          imageUrl: prodUrl,
-          imageUrls: [prodUrl],
-          status: "active",
-          createdAt: serverTimestamp(),
-        });
-
-        onComplete(storeRef.id);
+        window.location.href = `${origin}/seller/dashboard?payment_success=true`;
         return;
       }
 
       // Paid plans (> 0 XOF): initiate GeniusPay payment session
-      const origin = window.location.origin;
       const planLabel =
         plan === "monthly"
           ? "Mensuel"

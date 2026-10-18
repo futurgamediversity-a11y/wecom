@@ -116,10 +116,17 @@ export async function findStoreIdByOwner(ownerId: string): Promise<string | null
         limit(5)
       )
     );
-    if (snap.empty) return null;
-    // Find first store that is active / paid
-    const activeDoc = snap.docs.find((d) => d.data().isActive !== false);
-    return activeDoc ? activeDoc.id : null;
+    if (!snap.empty) {
+      const activeDoc = snap.docs.find((d) => d.data().isActive === true);
+      return activeDoc ? activeDoc.id : snap.docs[0].id;
+    }
+
+    // Fallback: check if storeId is saved in users/{ownerId}
+    const userSnap = await getDoc(doc(db, COLLECTIONS.users, ownerId));
+    if (userSnap.exists() && userSnap.data()?.storeId) {
+      return userSnap.data().storeId as string;
+    }
+    return null;
   } catch (error) {
     console.error("Error resolving store for owner:", error);
     return null;

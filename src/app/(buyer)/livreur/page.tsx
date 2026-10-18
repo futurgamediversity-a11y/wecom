@@ -20,7 +20,7 @@ import {
 import { formatXOF } from "@/lib/format";
 import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { LoadingSpinner, LoadingCircle } from "@/components/ui/loading-spinner";
 
 const TARIFFS = [
   { commune: "Cocody (Angré, Riviera, 2 Plateaux)", delay: "1h à 2h30", price: 1500, popular: true },
@@ -266,9 +266,13 @@ export default function LivreurPage() {
               <button
                 type="submit"
                 disabled={isSearching}
-                className="h-12 rounded-2xl bg-wcom-orange px-6 text-sm font-bold text-white shadow-md shadow-wcom-orange/25 transition hover:bg-orange-600 shrink-0 disabled:opacity-50 flex items-center justify-center gap-2"
+                className={`relative overflow-hidden h-12 rounded-2xl bg-wcom-orange px-6 text-sm font-bold text-white shadow-md shadow-wcom-orange/25 transition hover:bg-orange-600 shrink-0 disabled:opacity-75 flex items-center justify-center gap-2 ${
+                  isSearching
+                    ? "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent"
+                    : ""
+                }`}
               >
-                {isSearching ? <LoadingSpinner /> : "Suivre mon colis"}
+                {isSearching ? <LoadingCircle className="text-white" /> : "Suivre mon colis"}
               </button>
             </form>
 

@@ -18,6 +18,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { formatXOF } from "@/lib/format";
 import { usePricing } from "@/lib/pricing";
 import { Shimmer } from "@/components/ui/shimmer";
+import { LoadingCircle } from "@/components/ui/loading-spinner";
 
 const SERVICE_CATEGORIES = [
   "Tech & Digital",
@@ -454,9 +455,14 @@ export default function WorkspacePage() {
                     type="button"
                     disabled={submitting}
                     onClick={handleActivateService}
-                    className="flex-1 rounded-xl bg-[#A855F7] py-3 text-sm font-bold text-white shadow-md hover:bg-[#9333EA] transition disabled:opacity-50 flex items-center justify-center gap-2"
+                    className={`relative overflow-hidden flex-1 rounded-xl bg-[#A855F7] py-3 text-sm font-bold text-white shadow-md hover:bg-[#9333EA] transition disabled:opacity-75 flex items-center justify-center gap-2 ${
+                      submitting
+                        ? "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent"
+                        : ""
+                    }`}
                   >
-                    {submitting ? "Activation en cours..." : `Activer mon espace (${formatXOF(currentPrice)})`}
+                    {submitting && <LoadingCircle className="text-white" />}
+                    <span>{submitting ? "Activation en cours..." : `Activer mon espace (${formatXOF(currentPrice)})`}</span>
                   </button>
                 </div>
               </div>

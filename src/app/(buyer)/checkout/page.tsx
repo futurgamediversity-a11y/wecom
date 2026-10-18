@@ -385,11 +385,16 @@ export default function CheckoutPage() {
                 type="button"
                 onClick={handleMobilePayment}
                 disabled={isProcessing}
-                className="w-full flex items-center justify-between p-4 rounded-2xl border-2 border-wcom-orange bg-orange-50/20 hover:bg-orange-50/60 transition group disabled:opacity-50"
+                className={`relative overflow-hidden w-full flex items-center justify-between p-4 rounded-2xl border-2 border-wcom-orange bg-orange-50/20 hover:bg-orange-50/60 transition group disabled:opacity-75 ${
+                  isProcessing
+                    ? "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent"
+                    : ""
+                }`}
               >
                 <div className="text-left">
-                  <p className="font-bold text-sm text-neutral-900 group-hover:text-wcom-orange">
-                    {isProcessing ? "Initialisation..." : "Paiement Mobile / Carte"}
+                  <p className="font-bold text-sm text-neutral-900 group-hover:text-wcom-orange flex items-center gap-2">
+                    {isProcessing && <LoadingCircle />}
+                    <span>{isProcessing ? "Initialisation du paiement..." : "Paiement Mobile / Carte"}</span>
                   </p>
                   <p className="text-xs text-neutral-400">Wave, Orange Money, MTN MoMo, Visa/Mastercard</p>
                 </div>

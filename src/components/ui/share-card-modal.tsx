@@ -302,9 +302,14 @@ export function ShareCardModal({
         {/* Generated Card Preview */}
         <div className="relative flex-1 min-h-[260px] max-h-[380px] overflow-hidden rounded-2xl border border-white/10 bg-black/40 flex items-center justify-center p-2">
           {generating ? (
-            <div className="flex flex-col items-center gap-2 text-neutral-400">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-wcom-orange border-t-transparent" />
-              <span className="text-xs">Génération du visuel...</span>
+            <div className="relative h-full w-full min-h-[260px] rounded-2xl bg-neutral-800/90 overflow-hidden flex flex-col items-center justify-center gap-3 before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent">
+              <div className="relative z-10 flex flex-col items-center gap-3">
+                <div className="h-16 w-16 rounded-full bg-neutral-700/80" />
+                <div className="h-4 w-32 rounded-md bg-neutral-700/80" />
+                <span className="text-xs font-semibold text-neutral-300 animate-pulse">
+                  Génération du visuel...
+                </span>
+              </div>
             </div>
           ) : dataUrl ? (
             <img

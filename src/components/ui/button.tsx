@@ -34,15 +34,25 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {}
+    VariantProps<typeof buttonVariants> {
+  loading?: boolean;
+}
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, ...props }, ref) => (
+  ({ className, variant, size, loading, children, disabled, ...props }, ref) => (
     <button
       ref={ref}
-      className={cn(buttonVariants({ variant, size }), className)}
+      disabled={disabled || loading}
+      className={cn(
+        buttonVariants({ variant, size }),
+        loading &&
+          "relative overflow-hidden cursor-wait opacity-90 before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent",
+        className
+      )}
       {...props}
-    />
+    >
+      {children}
+    </button>
   )
 );
 Button.displayName = "Button";

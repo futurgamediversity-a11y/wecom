@@ -567,9 +567,13 @@ export function StoreWizard({
             <button 
               onClick={handleFinish}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl bg-wcom-green px-6 md:px-8 py-3 text-sm font-bold text-white transition hover:-translate-y-px hover:bg-[#007b2f] disabled:opacity-70 disabled:cursor-not-allowed shadow-md"
+              className={`relative overflow-hidden flex items-center gap-2 rounded-xl bg-wcom-green px-6 md:px-8 py-3 text-sm font-bold text-white transition hover:-translate-y-px hover:bg-[#007b2f] disabled:opacity-75 disabled:cursor-not-allowed shadow-md ${
+                loading
+                  ? "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent"
+                  : ""
+              }`}
             >
-              {loading && <LoadingCircle className="h-4 w-4 text-white" />}
+              {loading && <LoadingCircle className="text-white" />}
               {plan === "monthly" && monthlyPrice === 0
                 ? "Activer ma boutique gratuitement →"
                 : `Payer et lancer (${formatXOF(plan === "monthly" ? monthlyPrice : plan === "quarterly" ? quarterlyPrice : annualPrice)}) →`}

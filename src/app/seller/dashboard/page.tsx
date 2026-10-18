@@ -1083,9 +1083,14 @@ function SellerDashboardContent() {
                   <button
                     type="submit"
                     disabled={savingSettings}
-                    className="flex items-center gap-2 rounded-xl bg-wcom-green px-6 py-3 text-sm font-bold text-white shadow-md shadow-wcom-green/20 hover:bg-green-700 transition disabled:opacity-50"
+                    className={`relative overflow-hidden flex items-center gap-2 rounded-xl bg-wcom-green px-6 py-3 text-sm font-bold text-white shadow-md shadow-wcom-green/20 hover:bg-green-700 transition disabled:opacity-75 ${
+                      savingSettings
+                        ? "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent"
+                        : ""
+                    }`}
                   >
-                    {savingSettings ? <LoadingSpinner /> : "Enregistrer les modifications"}
+                    {savingSettings && <LoadingCircle className="text-white" />}
+                    <span>{savingSettings ? "Enregistrement en cours..." : "Enregistrer les modifications"}</span>
                   </button>
                 </div>
               </form>

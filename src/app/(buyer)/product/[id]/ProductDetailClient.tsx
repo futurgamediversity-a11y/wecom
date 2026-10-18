@@ -269,10 +269,14 @@ export default function ProductDetailClient({ id }: { id: string }) {
                   : () => router.push(`/login?next=${encodeURIComponent(`/product/${id}`)}`)
               }
               disabled={addingToCart || addedToCart}
-              className="flex flex-1 items-center justify-center gap-2 rounded-sm bg-wcom-orange px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-amber-600 disabled:opacity-70"
+              className={`relative overflow-hidden flex flex-1 items-center justify-center gap-2 rounded-sm bg-wcom-orange px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-amber-600 disabled:opacity-75 ${
+                addingToCart
+                  ? "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent"
+                  : ""
+              }`}
             >
               {addingToCart ? (
-                <><LoadingCircle /> Ajout au panier...</>
+                <><LoadingCircle className="text-white" /> Ajout au panier...</>
               ) : addedToCart ? (
                 <><CheckCircle2 className="h-4 w-4" /> Ajouté !</>
               ) : (

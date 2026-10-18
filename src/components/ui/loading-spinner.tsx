@@ -1,10 +1,39 @@
 "use client";
 
 import { WComLogo } from "@/components/brand/wcom-logo";
-import { LoaderCircle } from "lucide-react";
+import { cn } from "@/lib/cn";
 
-export function LoadingCircle({ className = "h-4 w-4" }: { className?: string }) {
-  return <LoaderCircle aria-hidden="true" className={`animate-spin ${className}`} />;
+export function LoadingCircle({ className = "" }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "relative inline-flex items-center justify-center overflow-hidden rounded-full bg-white/30 px-2 py-0.5 align-middle shadow-inner",
+        className
+      )}
+      aria-hidden="true"
+    >
+      <span className="relative h-2 w-7 overflow-hidden rounded-full bg-white/40">
+        <span className="absolute inset-0 -translate-x-full animate-[shimmer_1.2s_infinite] bg-gradient-to-r from-transparent via-white to-transparent" />
+      </span>
+    </span>
+  );
+}
+
+export function ButtonShimmer({
+  label = "Chargement...",
+  className = "",
+}: {
+  label?: string;
+  className?: string;
+}) {
+  return (
+    <span className={cn("inline-flex items-center gap-2 font-bold", className)}>
+      <span className="relative h-2 w-8 overflow-hidden rounded-full bg-white/40">
+        <span className="absolute inset-0 -translate-x-full animate-[shimmer_1.2s_infinite] bg-gradient-to-r from-transparent via-white to-transparent" />
+      </span>
+      {label && <span className="animate-pulse">{label}</span>}
+    </span>
+  );
 }
 
 export function LoadingSpinner({ fullScreen = false }: { fullScreen?: boolean }) {

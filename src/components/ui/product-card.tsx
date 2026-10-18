@@ -174,16 +174,20 @@ export function ProductCard({
               onClick={handleQuickAddToCart}
               disabled={isAdding}
               title="Ajouter au panier et partager"
-              className={`relative z-10 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl font-bold shadow-md transition-all duration-300 transform active:scale-90 ${
+              className={`relative z-10 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl font-bold shadow-md transition-all duration-300 transform active:scale-90 overflow-hidden ${
                 justAdded
                   ? "bg-wcom-green text-white scale-105 shadow-green-200"
+                  : isAdding
+                  ? "bg-wcom-orange text-white cursor-wait before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent"
                   : "bg-wcom-orange text-white hover:bg-orange-600 hover:shadow-orange-200"
               }`}
             >
               {justAdded ? (
                 <Check className="h-4 w-4 animate-in zoom-in" />
               ) : isAdding ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <span className="relative h-2 w-5 overflow-hidden rounded-full bg-white/40">
+                  <span className="absolute inset-0 -translate-x-full animate-[shimmer_1.1s_infinite] bg-gradient-to-r from-transparent via-white to-transparent" />
+                </span>
               ) : (
                 <ShoppingBag className="h-4 w-4" />
               )}

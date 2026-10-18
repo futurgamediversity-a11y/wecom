@@ -22,7 +22,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { WComLogo } from "@/components/brand/wcom-logo";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { LoadingSpinner, LoadingCircle } from "@/components/ui/loading-spinner";
 import { DashboardStatsSkeleton, DashboardProductsSkeleton } from "@/components/ui/shimmer";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";

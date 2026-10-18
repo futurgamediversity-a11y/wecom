@@ -306,7 +306,9 @@ export default function ServicesPage() {
                         {service.provider}
                       </h3>
                       {service.verified && (
-                        <CheckCircle2 className="h-4 w-4 text-[#A855F7] shrink-0" title="Prestataire vérifié" />
+                        <span title="Prestataire vérifié">
+                          <CheckCircle2 className="h-4 w-4 text-[#A855F7] shrink-0" />
+                        </span>
                       )}
                     </div>
                     <div className="flex items-center gap-1 text-xs text-neutral-500 mt-0.5">

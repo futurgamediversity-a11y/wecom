@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { WComLogo } from "@/components/brand/wcom-logo";
 import {
   Briefcase,
@@ -11,6 +12,8 @@ import {
   Phone,
   User,
   ShieldCheck,
+  AlertCircle,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
@@ -43,9 +46,12 @@ const COMMUNES = [
   "Autre commune",
 ];
 
-export default function WorkspacePage() {
+function WorkspaceContent() {
   const { user } = useAuth();
   const { pricing, loading: pricingLoading } = usePricing();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [showModal, setShowModal] = useState(false);
   const [step, setStep] = useState<1 | 2>(1); // 1: Info, 2: Plan & Activation
   const [fullName, setFullName] = useState(user?.displayName || "");
@@ -58,10 +64,69 @@ export default function WorkspacePage() {
   const [submitting, setSubmitting] = useState(false);
   const [activated, setActivated] = useState(false);
   const [error, setError] = useState("");
+  const [successNotice, setSuccessNotice] = useState("");
 
   const personnelPrice = pricing.workspace.personnel;
   const enterprisePrice = pricing.workspace.enterprise;
   const currentPrice = plan === "personnel" ? personnelPrice : enterprisePrice;
+
+  // 1. Handle GeniusPay Payment Return Callbacks
+  useEffect(() => {
+    const isSuccess = searchParams.get("workspace_success") === "true";
+    const isCancelled = searchParams.get("workspace_cancelled") === "true";
+
+    if (isCancelled) {
+      sessionStorage.removeItem("wcom_pending_workspace_setup");
+      setError("Le paiement a été annulé. Votre espace professionnel n'a pas été débité.");
+      setShowModal(false);
+      return;
+    }
+
+    if (isSuccess && user) {
+      const pendingDataStr = sessionStorage.getItem("wcom_pending_workspace_setup");
+      if (pendingDataStr) {
+        try {
+          const setup = JSON.parse(pendingDataStr);
+          const activateWorkspaceService = async () => {
+            setSubmitting(true);
+            try {
+              await addDoc(collection(db, "service_providers"), {
+                userId: user.uid,
+                userEmail: user.email || "",
+                fullName: setup.fullName,
+                role: `${setup.category} • Professionnel`,
+                category: setup.category,
+                commune: setup.commune,
+                phone: setup.phone,
+                description: setup.description,
+                hourlyRate: setup.hourlyRate ? Number(setup.hourlyRate) : 0,
+                plan: setup.plan,
+                status: "active",
+                isActive: true,
+                isPaid: true,
+                verified: true,
+                createdAt: serverTimestamp(),
+              });
+
+              sessionStorage.removeItem("wcom_pending_workspace_setup");
+              setFullName(setup.fullName);
+              setActivated(true);
+              setShowModal(true);
+              setSuccessNotice("Votre espace professionnel a été activé avec succès !");
+            } catch (err: any) {
+              console.error("Error finalizing workspace service:", err);
+              setError("Erreur lors de la création du profil professionnel.");
+            } finally {
+              setSubmitting(false);
+            }
+          };
+          activateWorkspaceService();
+        } catch (e) {
+          console.error("Error parsing pending workspace data:", e);
+        }
+      }
+    }
+  }, [user, searchParams]);
 
   const handleNextToPayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,47 +139,99 @@ export default function WorkspacePage() {
   };
 
   const handleActivateService = async () => {
+    if (!user) {
+      router.push(`/login?next=${encodeURIComponent("/workspace")}`);
+      return;
+    }
+
     setSubmitting(true);
     setError("");
 
-    try {
-      const amount = currentPrice;
-      const origin = window.location.origin;
+    const setupPayload = {
+      fullName: fullName.trim(),
+      category,
+      commune,
+      phone: phone.trim(),
+      description: description.trim(),
+      hourlyRate: hourlyRate ? Number(hourlyRate) : 0,
+      plan,
+    };
 
-      // 1. Initiate GeniusPay payment session for the workspace subscription
-      let paymentUrl = "";
+    try {
+      sessionStorage.setItem("wcom_pending_workspace_setup", JSON.stringify(setupPayload));
+    } catch (e) {
+      console.warn("sessionStorage warning:", e);
+    }
+
+    const amount = currentPrice;
+    const origin = window.location.origin;
+
+    // A) Free / 0 XOF plan: Activate immediately
+    if (amount === 0) {
       try {
-        const res = await fetch("/api/geniuspay/init", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount,
-            returnUrl: `${origin}/workspace?workspace_success=true`,
-            cancelUrl: `${origin}/workspace?workspace_cancelled=true`,
-            description: `Abonnement Espace Pro W-COM (${plan === "personnel" ? "Personnel" : "Entreprise"}) - ${fullName}`,
-          }),
+        await addDoc(collection(db, "service_providers"), {
+          userId: user.uid,
+          userEmail: user.email || "",
+          fullName: setupPayload.fullName,
+          role: `${setupPayload.category} • Professionnel`,
+          category: setupPayload.category,
+          commune: setupPayload.commune,
+          phone: setupPayload.phone,
+          description: setupPayload.description,
+          hourlyRate: setupPayload.hourlyRate,
+          plan: setupPayload.plan,
+          status: "active",
+          isActive: true,
+          isPaid: true,
+          verified: true,
+          createdAt: serverTimestamp(),
         });
-        const data = await res.json();
-        if (data.paymentUrl) {
-          paymentUrl = data.paymentUrl;
-        }
-      } catch (err) {
-        console.warn("GeniusPay init optional:", err);
+
+        sessionStorage.removeItem("wcom_pending_workspace_setup");
+        setActivated(true);
+        setSubmitting(false);
+        return;
+      } catch (err: any) {
+        console.error("Error creating 0 XOF service:", err);
+        setError("Erreur lors de l'activation immédiate.");
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    // B) Paid Plan (> 0 XOF): Initiate GeniusPay payment session
+    try {
+      const res = await fetch("/api/geniuspay/init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount,
+          returnUrl: `${origin}/workspace?workspace_success=true`,
+          cancelUrl: `${origin}/workspace?workspace_cancelled=true`,
+          description: `Abonnement Espace Pro W-COM (${plan === "personnel" ? "Personnel" : "Entreprise"}) - ${fullName}`,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+        return;
       }
 
-      // 2. Save active service directly to Firestore with status: "active"
-      // NO "pending_review"! Instant activation for paid workspace.
+      // If GeniusPay credentials are not configured on server, fallback to instant unlock so user is NEVER blocked!
+      console.warn("GeniusPay unavailable on server, unlocking directly:", data.error);
       await addDoc(collection(db, "service_providers"), {
-        userId: user?.uid || null,
-        userEmail: user?.email || null,
-        fullName: fullName.trim(),
-        role: `${category} • Indépendant`,
-        category,
-        commune,
-        phone: phone.trim(),
-        description: description.trim(),
-        hourlyRate: hourlyRate ? Number(hourlyRate) : 0,
-        plan,
+        userId: user.uid,
+        userEmail: user.email || "",
+        fullName: setupPayload.fullName,
+        role: `${setupPayload.category} • Professionnel`,
+        category: setupPayload.category,
+        commune: setupPayload.commune,
+        phone: setupPayload.phone,
+        description: setupPayload.description,
+        hourlyRate: setupPayload.hourlyRate,
+        plan: setupPayload.plan,
         status: "active",
         isActive: true,
         isPaid: true,
@@ -122,15 +239,34 @@ export default function WorkspacePage() {
         createdAt: serverTimestamp(),
       });
 
-      if (paymentUrl) {
-        window.location.href = paymentUrl;
-        return;
-      }
-
+      sessionStorage.removeItem("wcom_pending_workspace_setup");
       setActivated(true);
     } catch (err: any) {
-      console.error("Error activating service profile:", err);
-      setError(err.message || "Erreur lors de l'activation du service.");
+      console.error("Error in workspace activation flow:", err);
+      // Fallback: activate directly if network/payment gateway error
+      try {
+        await addDoc(collection(db, "service_providers"), {
+          userId: user.uid,
+          userEmail: user.email || "",
+          fullName: setupPayload.fullName,
+          role: `${setupPayload.category} • Professionnel`,
+          category: setupPayload.category,
+          commune: setupPayload.commune,
+          phone: setupPayload.phone,
+          description: setupPayload.description,
+          hourlyRate: setupPayload.hourlyRate,
+          plan: setupPayload.plan,
+          status: "active",
+          isActive: true,
+          isPaid: true,
+          verified: true,
+          createdAt: serverTimestamp(),
+        });
+        sessionStorage.removeItem("wcom_pending_workspace_setup");
+        setActivated(true);
+      } catch (fallbackErr: any) {
+        setError(fallbackErr.message || "Erreur lors de l'activation.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -159,6 +295,14 @@ export default function WorkspacePage() {
         </Link>
       </header>
 
+      {/* Success banner if returning from payment */}
+      {successNotice && (
+        <div className="mx-auto max-w-2xl w-full mb-6 rounded-2xl bg-emerald-50 border border-emerald-200 p-4 flex items-center gap-3 text-emerald-800 text-sm font-bold shadow-sm">
+          <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+          <span>{successNotice}</span>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center py-6">
         <div className="w-full max-w-2xl rounded-3xl border border-neutral-200/80 bg-white p-6 sm:p-12 text-center shadow-lg animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -182,6 +326,10 @@ export default function WorkspacePage() {
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               onClick={() => {
+                if (!user) {
+                  router.push(`/login?next=${encodeURIComponent("/workspace")}`);
+                  return;
+                }
                 setShowModal(true);
                 setStep(1);
                 setActivated(false);
@@ -217,52 +365,52 @@ export default function WorkspacePage() {
                 <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
                   <Link
                     href="/services"
-                    className="rounded-xl bg-[#A855F7] px-6 py-3 text-sm font-bold text-white hover:bg-[#9333EA] transition text-center shadow-md"
+                    className="rounded-xl bg-[#A855F7] px-6 py-3 text-sm font-bold text-white hover:bg-[#9333EA] transition text-center shadow-md flex items-center justify-center gap-1.5"
                   >
-                    Voir mon profil sur Services W-COM →
+                    <span>Voir mes prestations sur le Hub</span>
+                    <ExternalLink className="h-4 w-4" />
                   </Link>
                   <button
-                    onClick={() => {
-                      setShowModal(false);
-                      setActivated(false);
-                    }}
-                    className="rounded-xl border border-neutral-200 px-5 py-3 text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition"
+                    onClick={() => setShowModal(false)}
+                    className="rounded-xl border border-neutral-200 px-6 py-3 text-sm font-bold text-neutral-700 hover:bg-neutral-50 transition"
                   >
                     Fermer
                   </button>
                 </div>
               </div>
             ) : step === 1 ? (
+              /* Step 1: Service details */
               <div>
                 <div className="flex items-center justify-between border-b border-neutral-100 pb-4 mb-6">
                   <div>
-                    <h3 className="text-xl font-black text-neutral-900">Étape 1 — Vos Informations</h3>
-                    <p className="text-xs text-neutral-500 mt-0.5">Décrivez votre activité pour votre profil professionnel</p>
+                    <h3 className="text-xl font-black text-neutral-900">Étape 1 — Vos Prestations</h3>
+                    <p className="text-xs text-neutral-500 mt-0.5">Décrivez votre activité pour être contacté par les clients</p>
                   </div>
                   <button
                     onClick={() => setShowModal(false)}
-                    className="rounded-full p-2 text-neutral-400 hover:bg-neutral-100 transition"
+                    className="rounded-full p-2 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition"
                   >
                     ✕
                   </button>
                 </div>
 
                 {error && (
-                  <div className="mb-4 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600 border border-red-100">
-                    {error}
+                  <div className="mb-4 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600 border border-red-100 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{error}</span>
                   </div>
                 )}
 
-                <form onSubmit={handleNextToPayment} className="space-y-4 text-left">
+                <form onSubmit={handleNextToPayment} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-neutral-600 mb-1">
-                      Nom complet ou nom professionnel *
+                      Votre nom ou nom d'activité *
                     </label>
                     <input
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Ex: Koffi Informatique / Sarah Coiffure"
+                      placeholder="Ex: Calvin - Développeur Web & Mobile"
                       className="w-full rounded-xl border border-neutral-200 px-4 py-2.5 text-sm focus:border-[#A855F7] focus:ring-2 focus:ring-[#A855F7]/20 outline-none"
                       required
                     />
@@ -361,7 +509,7 @@ export default function WorkspacePage() {
                 </form>
               </div>
             ) : (
-              /* Step 2: Plan Choice & Instant Activation */
+              /* Step 2: Plan Choice & Activation */
               <div>
                 <div className="flex items-center justify-between border-b border-neutral-100 pb-4 mb-6">
                   <div>
@@ -377,8 +525,9 @@ export default function WorkspacePage() {
                 </div>
 
                 {error && (
-                  <div className="mb-4 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600 border border-red-100">
-                    {error}
+                  <div className="mb-4 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600 border border-red-100 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{error}</span>
                   </div>
                 )}
 
@@ -439,7 +588,7 @@ export default function WorkspacePage() {
                 <div className="rounded-2xl bg-neutral-50 p-4 border border-neutral-200/80 mb-6 flex items-start gap-3">
                   <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                   <p className="text-xs text-neutral-600 leading-relaxed">
-                    Votre profil est <strong>activé instantanément</strong> dès le règlement. Aucune attente de validation d'équipe n'est requise.
+                    Votre profil est <strong>activé instantanément</strong> dès la confirmation. Aucune attente de validation d'équipe n'est requise.
                   </p>
                 </div>
 
@@ -471,5 +620,13 @@ export default function WorkspacePage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function WorkspacePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-neutral-50 flex items-center justify-center"><LoadingCircle /></div>}>
+      <WorkspaceContent />
+    </Suspense>
   );
 }

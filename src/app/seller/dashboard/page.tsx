@@ -20,6 +20,14 @@ import {
   Send,
   Calendar,
   CreditCard,
+  Star,
+  MessageSquare,
+  ExternalLink,
+  Camera,
+  BarChart3,
+  Eye,
+  Info,
+  Check,
 } from "lucide-react";
 import { WComLogo } from "@/components/brand/wcom-logo";
 import { LoadingSpinner, LoadingCircle } from "@/components/ui/loading-spinner";
@@ -68,6 +76,26 @@ interface SellerProduct {
   createdAt: Date;
 }
 
+export interface ProductReview {
+  id: string;
+  storeId?: string;
+  productId?: string;
+  productName?: string;
+  userId?: string;
+  userName?: string;
+  userAvatar?: string;
+  rating: number;
+  comment: string;
+  createdAt: Date;
+}
+
+export interface ProductSalesStat {
+  productId: string;
+  salesQty: number;
+  revenue: number;
+  orderCount: number;
+}
+
 interface ChatMessage {
   id: string;
   sender: "user" | "repos";
@@ -100,7 +128,7 @@ function SellerDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const [activeTab, setActiveTab] = useState<"products" | "stats" | "settings">("products");
+  const [activeTab, setActiveTab] = useState<"products" | "stats" | "reviews" | "settings">("products");
   const [products, setProducts] = useState<SellerProduct[]>([]);
   const [storeProfile, setStoreProfile] = useState<StoreProfile | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -115,6 +143,12 @@ function SellerDashboardContent() {
   const [monthlyOrdersCount, setMonthlyOrdersCount] = useState(0);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
 
+  // Reviews and Per-Product Sales analytics
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [productSalesMap, setProductSalesMap] = useState<Map<string, ProductSalesStat>>(new Map());
+  const [statsSearchTerm, setStatsSearchTerm] = useState("");
+  const [reviewFilterRating, setReviewFilterRating] = useState<number | "all">("all");
+
   // Settings form
   const [editStoreName, setEditStoreName] = useState("");
   const [editStoreDesc, setEditStoreDesc] = useState("");
@@ -124,6 +158,8 @@ function SellerDashboardContent() {
   const [editPlan, setEditPlan] = useState<"monthly" | "quarterly" | "annual">("monthly");
   const [editLogoFile, setEditLogoFile] = useState<File | null>(null);
   const [editBannerFile, setEditBannerFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
 
   // Form state for new product
@@ -287,7 +323,7 @@ function SellerDashboardContent() {
     const fetchData = async () => {
       setIsLoadingProducts(true);
       try {
-        const [profileLookup, snapProducts, snapOrders] = await Promise.all([
+        const [profileLookup, snapProducts, snapOrders, snapReviews] = await Promise.all([
           fetchStoreProfile(storeId),
           getDocs(
             query(
@@ -297,6 +333,15 @@ function SellerDashboardContent() {
             )
           ),
           getDocs(collection(db, "orders")),
+          getDocs(
+            query(
+              collection(db, "reviews"),
+              where("storeId", "==", storeId)
+            )
+          ).catch((e) => {
+            console.warn("Reviews fetch error:", e);
+            return { docs: [] } as any;
+          }),
         ]);
 
         if (profileLookup.profile) {
@@ -326,6 +371,20 @@ function SellerDashboardContent() {
         });
         setProducts(items);
 
+        // Product ID lookup map for sales calculation
+        const productIdsSet = new Set(items.map((it) => it.id));
+        const salesMap = new Map<string, ProductSalesStat>();
+
+        // Initialize for all store products so every product has stats
+        items.forEach((p) => {
+          salesMap.set(p.id, {
+            productId: p.id,
+            salesQty: 0,
+            revenue: 0,
+            orderCount: 0,
+          });
+        });
+
         // Calculate real revenue and monthly metrics from Firestore orders
         const now = new Date();
         const currentMonth = now.getMonth();
@@ -342,7 +401,8 @@ function SellerDashboardContent() {
           // Check if order belongs to this store
           const isStoreOrder =
             o.storeId === storeId ||
-            (Array.isArray(o.items) && o.items.some((it: any) => it.storeId === storeId));
+            (Array.isArray(o.items) &&
+              o.items.some((it: any) => it.storeId === storeId || productIdsSet.has(it.productId || it.id)));
 
           if (isStoreOrder) {
             const amount = typeof o.totalAmount === "number" ? o.totalAmount : 0;
@@ -362,13 +422,60 @@ function SellerDashboardContent() {
               countMonthly++;
             }
           }
+
+          // Per-product specific sales computation
+          if (Array.isArray(o.items)) {
+            o.items.forEach((it: any) => {
+              const pid = it.productId || it.id;
+              if (pid && (productIdsSet.has(pid) || it.storeId === storeId)) {
+                const qty = typeof it.quantity === "number" ? it.quantity : 1;
+                const price =
+                  typeof it.price === "number"
+                    ? it.price
+                    : items.find((x) => x.id === pid)?.price || 0;
+                const prev = salesMap.get(pid) || {
+                  productId: pid,
+                  salesQty: 0,
+                  revenue: 0,
+                  orderCount: 0,
+                };
+                prev.salesQty += qty;
+                prev.revenue += qty * price;
+                prev.orderCount += 1;
+                salesMap.set(pid, prev);
+              }
+            });
+          }
         });
 
+        setProductSalesMap(salesMap);
         setTotalRevenue(sumTotal);
         setMonthlyRevenue(sumMonthly);
         setOrdersCount(totalCount);
         setMonthlyOrdersCount(countMonthly);
         setPendingOrdersCount(countPending);
+
+        // Process reviews
+        const fetchedReviews: ProductReview[] = (snapReviews.docs || []).map((d: any) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            storeId: data.storeId || storeId,
+            productId: data.productId || "",
+            productName:
+              data.productName ||
+              items.find((x) => x.id === data.productId)?.name ||
+              "Produit de la boutique",
+            userId: data.userId || "",
+            userName: data.userName || data.reviewerName || "Client W-COM",
+            userAvatar: data.userAvatar || data.photoURL || "",
+            rating: typeof data.rating === "number" ? data.rating : 5,
+            comment: data.comment || data.review || "",
+            createdAt:
+              data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+          };
+        });
+        setReviews(fetchedReviews);
 
       } catch (e) {
         console.error("Error fetching seller data:", e);
@@ -476,6 +583,54 @@ function SellerDashboardContent() {
     setImageFiles([]);
     setImagePreviews([]);
   }
+
+  // Handle Add Test Review (Firestore connected)
+  const handleAddTestReview = async () => {
+    if (!storeId || !user) return;
+    try {
+      const prod = products[0];
+      const testNames = ["Awa Traoré", "Kouamé Jean", "Fatou Cissé", "Yao Marc", "Aïcha Diallo"];
+      const testComments = [
+        "Produit d'excellente qualité, conforme à la description et livré très rapidement !",
+        "Super content de mon achat ! Vendeur très sérieux, je recommande vivement cette boutique.",
+        "Emballage soigné et article au top. Je commanderai à nouveau sans hésiter !",
+        "Très bonne boutique W-COM, service client impeccable et réactif.",
+        "Article reçu en parfait état, exactement comme sur les photos. Bravo au vendeur !",
+      ];
+      const randomName = testNames[Math.floor(Math.random() * testNames.length)];
+      const randomComment = testComments[Math.floor(Math.random() * testComments.length)];
+      const randomRating = 5;
+
+      const docRef = await addDoc(collection(db, "reviews"), {
+        storeId,
+        productId: prod?.id || "",
+        productName: prod?.name || "Article boutique",
+        userId: user.uid,
+        userName: randomName,
+        rating: randomRating,
+        comment: randomComment,
+        createdAt: serverTimestamp(),
+      });
+
+      const newReview: ProductReview = {
+        id: docRef.id,
+        storeId,
+        productId: prod?.id || "",
+        productName: prod?.name || "Article boutique",
+        userId: user.uid,
+        userName: randomName,
+        rating: randomRating,
+        comment: randomComment,
+        createdAt: new Date(),
+      };
+
+      setReviews((prev) => [newReview, ...prev]);
+      setSuccessMsg("Avis client ajouté avec succès sur Firestore !");
+    } catch (err) {
+      console.error("Error creating review:", err);
+      setErrorMsg("Impossible d'ajouter l'avis test.");
+    }
+  };
 
   // Handle Save Settings
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -710,7 +865,19 @@ function SellerDashboardContent() {
             }`}
           >
             <TrendingUp className="h-3.5 w-3.5" />
-            <span>Chiffre d'Affaires</span>
+            <span>Statistiques & Ventes</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("reviews")}
+            className={`flex items-center gap-1.5 rounded-xl px-4 py-1.5 text-xs font-bold transition shrink-0 ${
+              activeTab === "reviews"
+                ? "bg-wcom-green text-white shadow-sm"
+                : "text-neutral-600 hover:bg-neutral-100"
+            }`}
+          >
+            <Star className="h-3.5 w-3.5" />
+            <span>Avis Clients ({reviews.length})</span>
           </button>
 
           <button
@@ -749,9 +916,129 @@ function SellerDashboardContent() {
             </div>
           )}
 
+          {/* STORE HERO HEADER CARD (BANNER & PROFILE IMAGE) */}
+          <div className="relative overflow-hidden rounded-3xl bg-white border border-neutral-200/80 shadow-sm mb-8">
+            {/* Banner image or styled fallback gradient */}
+            <div className="relative h-44 sm:h-56 md:h-64 w-full bg-gradient-to-r from-emerald-800 via-teal-900 to-neutral-900 overflow-hidden">
+              {storeProfile?.banner ? (
+                <Image
+                  src={storeProfile.banner}
+                  alt={storeProfile.name || "Bannière boutique"}
+                  fill
+                  priority
+                  className="object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-[radial-gradient(#ffffff22_1px,transparent_1px)] [background-size:16px_16px] opacity-40" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+              
+              {/* Quick banner edit shortcut */}
+              <button
+                onClick={() => setActiveTab("settings")}
+                className="absolute top-4 right-4 flex items-center gap-1.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md px-3.5 py-1.5 text-xs font-bold text-white transition shadow-sm border border-white/20"
+              >
+                <Camera className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Changer bannière / photo</span>
+              </button>
+            </div>
+
+            {/* Store Info & Profile Image */}
+            <div className="px-6 pb-6 pt-0">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-14 sm:-mt-16 mb-4">
+                <div className="flex items-end gap-4">
+                  {/* Profile Image (Avatar) */}
+                  <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-2xl sm:rounded-3xl border-4 border-white bg-white shadow-xl overflow-hidden shrink-0">
+                    <Image
+                      src={storeProfile?.image || "/images/app_icon.png"}
+                      alt={storeProfile?.name || "Logo boutique"}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+
+                  {/* Store Title & Badges */}
+                  <div className="pt-2 sm:pt-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-neutral-900">
+                        {storeProfile?.name || "Ma Boutique W-COM"}
+                      </h1>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-black text-emerald-800">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Boutique Active
+                      </span>
+                    </div>
+
+                    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-500 font-medium">
+                      <span className="flex items-center gap-1">
+                        <Package className="h-3.5 w-3.5 text-neutral-400" />
+                        {editCategory || "Commerce Général"}
+                      </span>
+                      {storeProfile?.location && (
+                        <span className="flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-neutral-300" />
+                          {storeProfile.location}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1 text-amber-500 font-bold">
+                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                        {reviews.length > 0
+                          ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+                          : "5.0"}
+                        <span className="text-neutral-400 font-normal">({reviews.length} avis)</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0">
+                  <Link
+                    href={`/store/${storeId}`}
+                    target="_blank"
+                    className="flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-bold text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition shadow-sm"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    <span>Voir ma boutique en ligne</span>
+                  </Link>
+
+                  <button
+                    onClick={() => setShowForm(true)}
+                    className="flex items-center gap-1.5 rounded-xl bg-wcom-green px-4 py-2 text-xs font-bold text-white shadow-md shadow-wcom-green/20 hover:bg-green-700 transition"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Ajouter un produit</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Store Description */}
+              {storeProfile?.description && (
+                <p className="mt-2 text-xs sm:text-sm text-neutral-600 line-clamp-2 max-w-3xl">
+                  {storeProfile.description}
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* TAB 1: PRODUCTS CATALOGUE */}
           {activeTab === "products" && (
             <div>
+              {/* Section Guide */}
+              <div className="mb-6 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-5 border border-emerald-500/20">
+                <div className="flex items-start gap-3.5">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                    <Package className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-neutral-900">Catalogue des Produits</h2>
+                    <p className="mt-0.5 text-xs text-neutral-600 leading-relaxed">
+                      Gérez l'ensemble des articles en vente sur votre boutique W-COM. Vous pouvez publier de nouveaux produits, modifier vos prix, surveiller les stocks restants en direct et vérifier le nombre total de ventes réalisées sur chaque article.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Stats overview cards */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
                 {/* Monthly Revenue Card */}
@@ -834,97 +1121,130 @@ function SellerDashboardContent() {
                 </div>
               ) : (
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {filteredProducts.map((p) => (
-                    <div
-                      key={p.id}
-                      className="group flex flex-col justify-between overflow-hidden rounded-2xl bg-white border border-neutral-200/80 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-                    >
-                      <Link href={`/seller/product/${p.id}`} className="block flex-1">
-                        <div className="relative aspect-square w-full bg-neutral-100 overflow-hidden">
-                          {p.imageUrl ? (
-                            <Image
-                              src={p.imageUrl}
-                              alt={p.name}
-                              fill
-                              sizes="260px"
-                              className="object-cover transition-transform duration-300 group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-neutral-300">
-                              <Package className="h-10 w-10" />
-                            </div>
-                          )}
-                          <span
-                            className={`absolute right-2.5 top-2.5 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase shadow-sm ${
-                              p.status === "active"
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-neutral-100 text-neutral-500"
-                            }`}
-                          >
-                            {p.status === "active" ? "En ligne" : "Masqué"}
-                          </span>
-                        </div>
-
-                        <div className="p-4">
-                          <p className="line-clamp-1 text-sm font-bold text-neutral-900 group-hover:text-wcom-green transition">
-                            {p.name}
-                          </p>
-                          <span className="text-xs text-neutral-400">{p.category}</span>
-                          <div className="mt-2 text-base font-black text-wcom-orange">
-                            {formatXOF(p.price)}
+                  {filteredProducts.map((p) => {
+                    const salesStat = productSalesMap.get(p.id);
+                    const soldQty = salesStat?.salesQty || 0;
+                    return (
+                      <div
+                        key={p.id}
+                        className="group flex flex-col justify-between overflow-hidden rounded-2xl bg-white border border-neutral-200/80 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                      >
+                        <Link href={`/seller/product/${p.id}`} className="block flex-1">
+                          <div className="relative aspect-square w-full bg-neutral-100 overflow-hidden">
+                            {p.imageUrl ? (
+                              <Image
+                                src={p.imageUrl}
+                                alt={p.name}
+                                fill
+                                sizes="260px"
+                                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                              />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-neutral-300">
+                                <Package className="h-10 w-10" />
+                              </div>
+                            )}
+                            <span
+                              className={`absolute right-2.5 top-2.5 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase shadow-sm ${
+                                p.status === "active"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-neutral-100 text-neutral-500"
+                              }`}
+                            >
+                              {p.status === "active" ? "En ligne" : "Masqué"}
+                            </span>
                           </div>
-                        </div>
-                      </Link>
 
-                      <div className="flex items-center justify-between border-t border-neutral-100 px-4 py-2.5 bg-neutral-50/70">
-                        <span className="text-xs font-semibold text-neutral-600">
-                          Stock : <strong>{p.quantity}</strong>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setProductToDelete(p);
-                          }}
-                          className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-red-500 hover:bg-red-50 transition"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span>Supprimer</span>
-                        </button>
+                          <div className="p-4">
+                            <p className="line-clamp-1 text-sm font-bold text-neutral-900 group-hover:text-wcom-green transition">
+                              {p.name}
+                            </p>
+                            <span className="text-xs text-neutral-400">{p.category}</span>
+                            <div className="mt-2 flex items-center justify-between gap-2">
+                              <div className="text-base font-black text-wcom-orange">
+                                {formatXOF(p.price)}
+                              </div>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-black text-wcom-orange">
+                                🔥 {soldQty} vendu{soldQty > 1 ? "s" : ""}
+                              </span>
+                            </div>
+                          </div>
+                        </Link>
+
+                        <div className="flex items-center justify-between border-t border-neutral-100 px-4 py-2.5 bg-neutral-50/70">
+                          <span className="text-xs font-semibold text-neutral-600">
+                            Stock : <strong>{p.quantity}</strong>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setProductToDelete(p);
+                            }}
+                            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-red-500 hover:bg-red-50 transition"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>Supprimer</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
           )}
 
-          {/* TAB 2: DETAILED STATS & MONTHLY REVENUE */}
+          {/* TAB 2: DETAILED STATS & PER-PRODUCT SALES */}
           {activeTab === "stats" && (
             <div className="space-y-6">
+              {/* Section Guide */}
+              <div className="rounded-2xl bg-gradient-to-r from-orange-500/10 via-orange-500/5 to-transparent p-5 border border-orange-500/20">
+                <div className="flex items-start gap-3.5">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-wcom-orange text-white shadow-sm">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-neutral-900">Statistiques & Ventes Détaillées</h2>
+                    <p className="mt-0.5 text-xs text-neutral-600 leading-relaxed">
+                      Analysez les flux financiers et l'attractivité de vos articles. Retrouvez vos chiffres d'affaires réels calculés en direct depuis vos commandes, ainsi qu'un tableau interactif mesurant pour chaque article spécifique sa <strong>quantité exacte vendue</strong> et son chiffre d'affaires généré.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Financial Metrics Cards */}
               <div className="rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-neutral-200/80">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-emerald-600">
                     <TrendingUp className="h-6 w-6" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-neutral-900">Bilan Financier Mensuel</h2>
+                    <h3 className="text-xl font-black text-neutral-900">Bilan Financier Global & Mensuel</h3>
                     <p className="text-xs text-neutral-500">Données calculées en temps réel à partir de vos commandes Firestore</p>
                   </div>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-3 mb-8">
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
                   <div className="rounded-2xl bg-emerald-50/60 border border-emerald-100 p-5">
-                    <span className="text-xs font-bold uppercase text-emerald-800">Chiffre d'Affaires Ce Mois</span>
+                    <span className="text-xs font-bold uppercase text-emerald-800">CA Ce Mois</span>
                     <p className="text-3xl font-black text-emerald-700 mt-2">{formatXOF(monthlyRevenue)}</p>
-                    <span className="text-xs text-emerald-600 mt-1 block">Sur {monthlyOrdersCount} commande(s)</span>
+                    <span className="text-xs text-emerald-600 mt-1 block">{monthlyOrdersCount} commande(s)</span>
                   </div>
 
                   <div className="rounded-2xl bg-orange-50/60 border border-orange-100 p-5">
-                    <span className="text-xs font-bold uppercase text-orange-800">Chiffre d'Affaires Global</span>
+                    <span className="text-xs font-bold uppercase text-orange-800">CA Cumulé</span>
                     <p className="text-3xl font-black text-wcom-orange mt-2">{formatXOF(totalRevenue)}</p>
-                    <span className="text-xs text-orange-600 mt-1 block">{ordersCount} commande(s) au total</span>
+                    <span className="text-xs text-orange-600 mt-1 block">{ordersCount} commande(s) totales</span>
+                  </div>
+
+                  <div className="rounded-2xl bg-purple-50/60 border border-purple-100 p-5">
+                    <span className="text-xs font-bold uppercase text-purple-800">Total Unités Vendues</span>
+                    <p className="text-3xl font-black text-purple-700 mt-2">
+                      {Array.from(productSalesMap.values()).reduce((acc, s) => acc + s.salesQty, 0)}
+                    </p>
+                    <span className="text-xs text-purple-600 mt-1 block">Articles achetés</span>
                   </div>
 
                   <div className="rounded-2xl bg-neutral-50 border border-neutral-200/80 p-5">
@@ -932,46 +1252,438 @@ function SellerDashboardContent() {
                     <p className="text-3xl font-black text-neutral-900 mt-2">
                       {formatXOF(ordersCount > 0 ? Math.round(totalRevenue / ordersCount) : 0)}
                     </p>
-                    <span className="text-xs text-neutral-400 mt-1 block">Valeur moyenne par commande</span>
+                    <span className="text-xs text-neutral-400 mt-1 block">Par commande</span>
                   </div>
                 </div>
 
                 <div className="rounded-2xl bg-neutral-50 p-4 border border-neutral-200/80 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Bot className="h-6 w-6 text-wcom-orange" />
+                    <Bot className="h-6 w-6 text-wcom-orange shrink-0" />
                     <div>
-                      <p className="text-xs font-bold text-neutral-900">Besoin d'une analyse détaillée de vos revenus ?</p>
-                      <p className="text-xs text-neutral-500">Demandez à Repos IA de vous expliquer vos tendances de vente.</p>
+                      <p className="text-xs font-bold text-neutral-900">Besoin d'une analyse stratégique de vos ventes ?</p>
+                      <p className="text-xs text-neutral-500">Demandez à Repos IA de vous expliquer vos tendances et opportunités.</p>
                     </div>
                   </div>
                   <button
                     onClick={() => {
                       setIsReposOpen(true);
-                      handleSendReposMessage("Fais-moi une analyse détaillée de mes revenus ce mois-ci.");
+                      handleSendReposMessage("Fais-moi une analyse détaillée de mes ventes et de mes articles les plus rentables.");
                     }}
-                    className="rounded-xl bg-neutral-900 px-4 py-2 text-xs font-bold text-white hover:bg-neutral-800 transition"
+                    className="rounded-xl bg-neutral-900 px-4 py-2 text-xs font-bold text-white hover:bg-neutral-800 transition shrink-0"
                   >
                     Analyser avec Repos →
                   </button>
                 </div>
               </div>
+
+              {/* PER-PRODUCT SPECIFIC SALES TABLE */}
+              <div className="rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-neutral-200/80">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                  <div>
+                    <h3 className="text-lg font-black text-neutral-900">Performances & Quantités Vendues par Produit</h3>
+                    <p className="text-xs text-neutral-500">Détail précis des volumes écoulés et du revenu généré pour chaque article</p>
+                  </div>
+
+                  <div className="relative w-full sm:w-72">
+                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                    <input
+                      type="search"
+                      value={statsSearchTerm}
+                      onChange={(e) => setStatsSearchTerm(e.target.value)}
+                      placeholder="Filtrer un produit..."
+                      className="w-full h-10 rounded-xl bg-neutral-50 border border-neutral-200 pl-9 pr-4 text-xs font-medium focus:bg-white focus:border-wcom-green outline-none"
+                    />
+                  </div>
+                </div>
+
+                {products.length === 0 ? (
+                  <div className="p-8 text-center text-neutral-400 text-xs">
+                    Aucun produit dans le catalogue pour le moment.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-neutral-100 text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+                          <th className="pb-3 pl-2">Article</th>
+                          <th className="pb-3">Catégorie</th>
+                          <th className="pb-3 text-right">Prix Unitaire</th>
+                          <th className="pb-3 text-center">Quantité Vendue</th>
+                          <th className="pb-3 text-right">CA Généré</th>
+                          <th className="pb-3 text-center">Stock Actuel</th>
+                          <th className="pb-3 text-center">Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-100 text-xs">
+                        {products
+                          .filter(
+                            (p) =>
+                              !statsSearchTerm ||
+                              p.name.toLowerCase().includes(statsSearchTerm.toLowerCase()) ||
+                              p.category.toLowerCase().includes(statsSearchTerm.toLowerCase())
+                          )
+                          .map((p) => {
+                            const stat = productSalesMap.get(p.id) || { salesQty: 0, revenue: 0, orderCount: 0 };
+                            return (
+                              <tr key={p.id} className="hover:bg-neutral-50/70 transition">
+                                <td className="py-3.5 pl-2 flex items-center gap-3">
+                                  <div className="relative h-10 w-10 rounded-lg overflow-hidden bg-neutral-100 shrink-0">
+                                    <Image
+                                      src={p.imageUrl || "/images/app_icon.png"}
+                                      alt={p.name}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Link
+                                      href={`/seller/product/${p.id}`}
+                                      className="font-bold text-neutral-900 hover:text-wcom-green transition line-clamp-1"
+                                    >
+                                      {p.name}
+                                    </Link>
+                                    <span className="text-[10px] text-neutral-400">{stat.orderCount} commande(s)</span>
+                                  </div>
+                                </td>
+                                <td className="py-3.5 text-neutral-600">{p.category}</td>
+                                <td className="py-3.5 text-right font-black text-neutral-900">{formatXOF(p.price)}</td>
+                                <td className="py-3.5 text-center">
+                                  <span
+                                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-black ${
+                                      stat.salesQty > 0
+                                        ? "bg-emerald-100 text-emerald-800"
+                                        : "bg-neutral-100 text-neutral-500"
+                                    }`}
+                                  >
+                                    {stat.salesQty > 0
+                                      ? `🔥 ${stat.salesQty} unité${stat.salesQty > 1 ? "s" : ""}`
+                                      : "0 vendu"}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 text-right font-black text-emerald-600">
+                                  {formatXOF(stat.revenue)}
+                                </td>
+                                <td className="py-3.5 text-center">
+                                  <span
+                                    className={`font-bold ${
+                                      p.quantity === 0
+                                        ? "text-red-500"
+                                        : p.quantity < 5
+                                        ? "text-amber-600"
+                                        : "text-neutral-700"
+                                    }`}
+                                  >
+                                    {p.quantity} en stock
+                                  </span>
+                                </td>
+                                <td className="py-3.5 text-center">
+                                  {stat.salesQty >= 5 ? (
+                                    <span className="rounded-full bg-orange-100 text-orange-800 px-2 py-0.5 text-[10px] font-black uppercase">
+                                      Top Vente
+                                    </span>
+                                  ) : stat.salesQty > 0 ? (
+                                    <span className="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-black uppercase">
+                                      Vendu
+                                    </span>
+                                  ) : (
+                                    <span className="rounded-full bg-neutral-100 text-neutral-500 px-2 py-0.5 text-[10px] font-semibold">
+                                      En attente
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
-          {/* TAB 3: STORE SETTINGS */}
+          {/* TAB 3: REVIEWS & CUSTOMER FEEDBACK */}
+          {activeTab === "reviews" && (
+            <div className="space-y-6">
+              {/* Section Guide */}
+              <div className="rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-5 border border-amber-500/20">
+                <div className="flex items-start gap-3.5">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500 text-white shadow-sm">
+                    <Star className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-neutral-900">Avis & Retours Clients</h2>
+                    <p className="mt-0.5 text-xs text-neutral-600 leading-relaxed">
+                      Consultez l'ensemble des notes et commentaires laissés par vos acheteurs sur vos produits. Ces retours d'expérience sont directement liés à Firestore et vous permettent de mesurer la satisfaction de votre clientèle.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rating Overview Card */}
+              <div className="grid gap-6 md:grid-cols-3">
+                {/* Average rating box */}
+                <div className="rounded-3xl bg-white p-6 shadow-sm border border-neutral-200/80 flex flex-col justify-center items-center text-center">
+                  <span className="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">Note Moyenne</span>
+                  <div className="text-5xl font-black text-neutral-900">
+                    {reviews.length > 0
+                      ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+                      : "5.0"}
+                  </div>
+                  <div className="mt-3 flex items-center gap-1 text-amber-400">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className="h-5 w-5 fill-amber-400" />
+                    ))}
+                  </div>
+                  <span className="mt-2 text-xs text-neutral-400">
+                    Sur {reviews.length} avis client{reviews.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                {/* Star distribution */}
+                <div className="rounded-3xl bg-white p-6 shadow-sm border border-neutral-200/80 md:col-span-2 flex flex-col justify-center">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-3">Répartition des Évaluations</h4>
+                  <div className="space-y-2">
+                    {[5, 4, 3, 2, 1].map((stars) => {
+                      const count = reviews.filter((r) => Math.round(r.rating) === stars).length;
+                      const pct = reviews.length > 0 ? Math.round((count / reviews.length) * 100) : stars === 5 ? 100 : 0;
+                      return (
+                        <div key={stars} className="flex items-center gap-3 text-xs">
+                          <span className="w-12 font-bold text-neutral-700 flex items-center gap-1">
+                            {stars} <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                          </span>
+                          <div className="flex-1 h-2 rounded-full bg-neutral-100 overflow-hidden">
+                            <div
+                              className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="w-10 text-right text-neutral-400 font-semibold">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Filter Pills and Action */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                  <button
+                    onClick={() => setReviewFilterRating("all")}
+                    className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition ${
+                      reviewFilterRating === "all"
+                        ? "bg-neutral-900 text-white shadow-sm"
+                        : "bg-white text-neutral-600 border border-neutral-200 hover:bg-neutral-50"
+                    }`}
+                  >
+                    Tous ({reviews.length})
+                  </button>
+                  {[5, 4, 3, 2, 1].map((stars) => {
+                    const count = reviews.filter((r) => Math.round(r.rating) === stars).length;
+                    return (
+                      <button
+                        key={stars}
+                        onClick={() => setReviewFilterRating(stars)}
+                        className={`flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                          reviewFilterRating === stars
+                            ? "bg-amber-500 text-white shadow-sm"
+                            : "bg-white text-neutral-600 border border-neutral-200 hover:bg-neutral-50"
+                        }`}
+                      >
+                        <span>{stars}</span>
+                        <Star className="h-3 w-3 fill-current" />
+                        <span>({count})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={handleAddTestReview}
+                  className="flex items-center gap-1.5 rounded-xl border border-dashed border-amber-300 bg-amber-50/70 px-3.5 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Ajouter un avis test</span>
+                </button>
+              </div>
+
+              {/* Reviews list */}
+              {reviews.length === 0 ? (
+                <div className="rounded-3xl bg-white p-12 text-center shadow-sm border border-neutral-200/80">
+                  <MessageSquare className="mx-auto h-12 w-12 text-neutral-300" />
+                  <p className="mt-3 font-bold text-neutral-800">Aucun avis client pour l'instant</p>
+                  <p className="mt-1 text-xs text-neutral-400 max-w-sm mx-auto">
+                    Dès qu'un client passera commande ou publiera un retour sur vos articles, ses notes et commentaires apparaîtront ici.
+                  </p>
+                  <button
+                    onClick={handleAddTestReview}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-white shadow-md shadow-amber-500/20 hover:bg-amber-600 transition"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Créer un avis de test</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {reviews
+                    .filter((r) => reviewFilterRating === "all" || Math.round(r.rating) === reviewFilterRating)
+                    .map((rev) => (
+                      <div
+                        key={rev.id}
+                        className="rounded-2xl bg-white p-5 shadow-sm border border-neutral-200/80 flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="grid h-9 w-9 place-items-center rounded-xl bg-neutral-100 text-neutral-700 font-bold text-xs">
+                                {rev.userName ? rev.userName[0].toUpperCase() : "C"}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-xs text-neutral-900">{rev.userName}</span>
+                                  <span className="rounded-full bg-emerald-50 text-emerald-700 px-1.5 py-0.2 text-[9px] font-bold">
+                                    Vérifié
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-neutral-400">
+                                  {rev.createdAt.toLocaleDateString("fr-FR", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-0.5 text-amber-400">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-3.5 w-3.5 ${
+                                    i < Math.round(rev.rating) ? "fill-amber-400" : "text-neutral-200"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          {rev.productName && (
+                            <div className="mb-2">
+                              <span className="inline-block rounded-lg bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-600">
+                                Article : {rev.productName}
+                              </span>
+                            </div>
+                          )}
+
+                          <p className="text-xs text-neutral-700 leading-relaxed italic">
+                            "{rev.comment}"
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: STORE SETTINGS & VISUAL IDENTITY */}
           {activeTab === "settings" && (
             <div className="rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-neutral-200/80 max-w-3xl">
-              <div className="flex items-center gap-3 border-b border-neutral-100 pb-5 mb-6">
-                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-neutral-100 text-neutral-700">
-                  <Settings className="h-6 w-6" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-black text-neutral-900">Paramètres de la Boutique</h2>
-                  <p className="text-xs text-neutral-500">Personnalisez votre boutique et gérez votre abonnement</p>
+              {/* Section Guide */}
+              <div className="mb-8 rounded-2xl bg-gradient-to-r from-neutral-800/10 via-neutral-800/5 to-transparent p-5 border border-neutral-300">
+                <div className="flex items-start gap-3.5">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-neutral-900 text-white shadow-sm">
+                    <Settings className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-neutral-900">Paramètres & Identité Visuelle</h2>
+                    <p className="mt-0.5 text-xs text-neutral-600 leading-relaxed">
+                      Personnalisez la vitrine de votre boutique : téléversez votre <strong>photo de profil / logo</strong> et votre <strong>bannière de couverture</strong>, modifiez vos informations de contact, votre localisation et votre formule d'abonnement W-COM.
+                    </p>
+                  </div>
                 </div>
               </div>
 
               <form onSubmit={handleSaveSettings} className="space-y-6">
+                {/* Visual Identity Section (Banner & Logo) */}
+                <div className="rounded-2xl bg-neutral-50 p-5 border border-neutral-200/80 space-y-5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-700">Identité Visuelle de la Boutique</h3>
+
+                  {/* Banner uploader */}
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-600 mb-1.5">
+                      Bannière de couverture (en-tête de votre boutique)
+                    </label>
+                    <div className="relative h-32 w-full rounded-2xl border-2 border-dashed border-neutral-300 bg-white overflow-hidden flex items-center justify-center hover:border-wcom-green transition group">
+                      {bannerPreview || storeProfile?.banner ? (
+                        <>
+                          <Image
+                            src={bannerPreview || storeProfile?.banner || ""}
+                            alt="Bannière prévisualisée"
+                            fill
+                            className="object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold gap-2">
+                            <Camera className="h-4 w-4" />
+                            <span>Changer la bannière</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center gap-1.5 text-neutral-400">
+                          <Camera className="h-6 w-6" />
+                          <span className="text-xs font-semibold">Cliquez pour choisir une image de bannière</span>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setEditBannerFile(file);
+                            setBannerPreview(URL.createObjectURL(file));
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Logo uploader */}
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-600 mb-1.5">
+                      Photo de profil / Logo commercial
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <div className="relative h-20 w-20 rounded-2xl border-2 border-dashed border-neutral-300 bg-white overflow-hidden flex items-center justify-center shrink-0">
+                        <Image
+                          src={logoPreview || storeProfile?.image || "/images/app_icon.png"}
+                          alt="Logo prévisualisé"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <label className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-xs font-bold text-neutral-700 hover:bg-neutral-100 transition shadow-sm">
+                        <Upload className="h-4 w-4" />
+                        <span>Choisir un logo ou photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setEditLogoFile(file);
+                              setLogoPreview(URL.createObjectURL(file));
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-600 mb-1">
                     Nom commercial de la boutique *

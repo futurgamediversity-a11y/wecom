@@ -13,7 +13,7 @@ import {
 import { type Product } from "@/lib/types";
 import { formatXOF } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
-import { ShareCardModal, type ShareCardProduct } from "./share-card-modal";
+import { shareProductToWhatsApp } from "./share-card-modal";
 
 export function ProductCard({
   p,
@@ -24,7 +24,6 @@ export function ProductCard({
   const isFavorite = favorites.includes(p.id);
   const [isAdding, setIsAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
-  const [shareProduct, setShareProduct] = useState<ShareCardProduct | null>(null);
 
   const images = p.images || [];
   const imageUrl = images.length > 0 ? images[0] : (p.imageUrl || "/images/app_icon.png");
@@ -56,14 +55,16 @@ export function ProductCard({
         storeId: p.storeId ?? "",
       });
       setJustAdded(true);
-      // Trigger viral share card modal!
-      setShareProduct({
+
+      // Generate card and send WhatsApp intent directly
+      shareProductToWhatsApp({
         id: p.id,
         name: p.name ?? "Produit",
         price: p.price ?? 0,
         imageUrl,
         storeName: p.storeName,
       });
+
       setTimeout(() => setJustAdded(false), 2000);
     } catch (err) {
       console.error("Error adding to cart:", err);
@@ -73,8 +74,7 @@ export function ProductCard({
   };
 
   return (
-    <>
-      <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-white border border-neutral-200/90 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:border-wcom-orange/30 active:scale-[0.99] select-none">
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-white border border-neutral-200/90 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:border-wcom-orange/30 active:scale-[0.99] select-none">
         
         {/* Top visual section */}
         <div className="relative aspect-square w-full overflow-hidden bg-neutral-100">
@@ -195,13 +195,5 @@ export function ProductCard({
           </div>
         </div>
       </div>
-
-      {/* Viral Share Card Modal on Add-To-Cart */}
-      <ShareCardModal
-        isOpen={Boolean(shareProduct)}
-        onClose={() => setShareProduct(null)}
-        product={shareProduct}
-      />
-    </>
   );
 }

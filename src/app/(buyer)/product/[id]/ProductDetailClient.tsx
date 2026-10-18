@@ -23,7 +23,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { toProduct } from "@/lib/firestore-schema";
 import { fetchStoreProfile } from "@/lib/store";
-import { ShareCardModal, type ShareCardProduct } from "@/components/ui/share-card-modal";
+import { shareProductToWhatsApp } from "@/components/ui/share-card-modal";
 
 export default function ProductDetailClient({ id }: { id: string }) {
   const [product, setProduct] = useState<Product | null>(null);
@@ -34,7 +34,6 @@ export default function ProductDetailClient({ id }: { id: string }) {
   const [addedToCart, setAddedToCart] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const [storeData, setStoreData] = useState<{ name: string; image: string } | null>(null);
-  const [shareProduct, setShareProduct] = useState<ShareCardProduct | null>(null);
   const router = useRouter();
   const { favorites, toggleFavorite, user, addToCart } = useAuth();
   const isFavorite = product ? favorites.includes(product.id) : false;
@@ -58,14 +57,16 @@ export default function ProductDetailClient({ id }: { id: string }) {
         selectedVariants,
       });
       setAddedToCart(true);
-      // Trigger viral share card modal!
-      setShareProduct({
+
+      // Generate card and send WhatsApp intent directly
+      shareProductToWhatsApp({
         id: product.id,
         name: product.name ?? "Produit",
         price: product.price ?? 0,
         imageUrl: imgUrl,
         storeName: storeData?.name,
       });
+
       setTimeout(() => setAddedToCart(false), 2500);
     } finally {
       setAddingToCart(false);
@@ -387,13 +388,6 @@ export default function ProductDetailClient({ id }: { id: string }) {
             ))}
         </div>
       </section>
-
-      {/* Viral Share Card Modal on Add To Cart */}
-      <ShareCardModal
-        isOpen={Boolean(shareProduct)}
-        onClose={() => setShareProduct(null)}
-        product={shareProduct}
-      />
     </main>
   );
 }

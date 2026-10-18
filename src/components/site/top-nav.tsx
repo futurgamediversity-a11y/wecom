@@ -11,12 +11,9 @@ import {
   User,
   MapPin,
   ChevronDown,
-  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/lib/auth-context";
-import { auth } from "@/lib/firebase";
-import { signOut } from "firebase/auth";
 
 const communes = [
   "Cocody",
@@ -44,37 +41,38 @@ function LocationPicker({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex h-9 items-center gap-1.5 rounded-xl bg-wcom-green/10 px-2.5 text-sm text-neutral-800 transition hover:bg-wcom-green/15 lg:h-auto lg:bg-transparent lg:px-3 lg:py-2 lg:shadow-sm lg:hover:bg-neutral-100"
+        className="flex h-9 items-center gap-1.5 rounded-xl bg-wcom-green/10 px-2.5 text-xs sm:text-sm font-semibold text-neutral-800 transition hover:bg-wcom-green/15 lg:h-10 lg:px-3 lg:py-2 lg:hover:bg-neutral-100"
       >
         <MapPin className="h-4 w-4 shrink-0 text-wcom-green" />
-        <span className="max-w-24 truncate font-semibold sm:hidden">
+        <span className="max-w-24 truncate sm:max-w-none">
           {location.split(",")[0]}
         </span>
-        <span className="hidden font-semibold sm:inline">{location}</span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 shrink-0 text-neutral-400 transition-transform",
+            "h-3.5 w-3.5 shrink-0 text-neutral-400 transition-transform duration-200",
             open && "rotate-180"
           )}
         />
       </button>
       {open ? (
-        <div className="absolute left-0 z-50 mt-2 w-64 overflow-hidden rounded-xl bg-white shadow-xl">
-          <div className="border-b border-neutral-100 px-4 py-3">
-            <p className="text-sm font-bold">Commune de livraison</p>
-            <p className="text-xs text-neutral-500">
+        <div className="absolute left-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl bg-white p-1.5 shadow-xl border border-neutral-100 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="border-b border-neutral-100 px-3.5 py-2.5">
+            <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">Commune de livraison</p>
+            <p className="text-xs text-neutral-500 mt-0.5">
               Les frais s&apos;ajusteront automatiquement.
             </p>
           </div>
-          <ul className="max-h-72 overflow-auto py-2">
+          <ul className="max-h-64 overflow-auto py-1 space-y-0.5">
             {communes.map((commune) => (
               <li key={commune}>
                 <button
                   type="button"
                   onClick={() => onSelect(commune)}
                   className={cn(
-                    "flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-neutral-50",
-                    location.startsWith(commune) && "bg-wcom-green/5 font-semibold"
+                    "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-neutral-50",
+                    location.startsWith(commune)
+                      ? "bg-wcom-green/10 font-bold text-wcom-green"
+                      : "text-neutral-700"
                   )}
                 >
                   <MapPin className="h-4 w-4 text-wcom-green" />
@@ -90,7 +88,7 @@ function LocationPicker({
 }
 
 /**
- * Responsive buyer navigation with a compact mobile header and scrollable links.
+ * Responsive buyer navigation with a polished header, dynamic cart counts, and tab highlights.
  */
 export function TopNav() {
   const [location, setLocation] = useState<string>("Cocody, Abidjan");
@@ -99,15 +97,9 @@ export function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { user, loading } = useAuth();
+  const { user, loading, cartItems } = useAuth();
 
-  async function handleSignOut() {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Sign out error:", error);
-    }
-  }
+  const cartCount = cartItems.reduce((acc, item) => acc + (item.quantity || 1), 0);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,15 +127,39 @@ export function TopNav() {
     setOpen(false);
   };
 
+  const navLinks = [
+    {
+      href: "/shop",
+      label: "Boutique",
+      isActive: pathname === "/shop" || pathname.startsWith("/product") || pathname.startsWith("/store"),
+    },
+    {
+      href: "/orders",
+      label: "Mes commandes",
+      isActive: pathname.startsWith("/orders"),
+    },
+    {
+      href: "/services",
+      label: "Services",
+      isActive: pathname.startsWith("/services"),
+    },
+    {
+      href: "/livreur",
+      label: "Livraison",
+      isActive: pathname.startsWith("/livreur"),
+    },
+  ];
+
   return (
-    <header className="sticky top-2 z-40 mx-auto w-full max-w-7xl overflow-x-clip rounded-2xl bg-white/90 shadow-lg backdrop-blur-xl md:top-4">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-2.5 px-3 pb-2.5 pt-3 lg:h-16 lg:flex-nowrap lg:gap-6 lg:px-6 lg:py-0">
+    <header className="sticky top-2 z-40 mx-auto w-full max-w-7xl rounded-2xl bg-white/95 shadow-lg shadow-neutral-200/50 backdrop-blur-xl border border-neutral-100 md:top-4 transition-all">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-2.5 px-3 pb-2.5 pt-3 lg:h-16 lg:flex-nowrap lg:gap-5 lg:px-6 lg:py-0">
+        
         {/* Brand */}
-        <Link href="/shop" className="order-1 flex min-w-0 shrink-0 items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-sm bg-wcom-orange font-black text-white">
+        <Link href="/shop" className="order-1 flex min-w-0 shrink-0 items-center gap-2 group">
+          <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-wcom-orange to-orange-600 font-black text-white shadow-sm transition group-hover:scale-105">
             W
           </span>
-          <span className="hidden text-base font-black tracking-wider text-neutral-900 min-[360px]:inline sm:text-lg">
+          <span className="text-base font-black tracking-wider text-neutral-900 group-hover:text-wcom-orange transition sm:text-lg">
             W-COM
           </span>
         </Link>
@@ -164,89 +180,117 @@ export function TopNav() {
           role="search"
           className="relative order-3 w-full min-w-0 basis-full lg:order-2 lg:max-w-2xl lg:flex-1 lg:basis-auto"
         >
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
           <input
             type="search"
             value={searchTerm}
             onChange={handleSearchInputChange}
             placeholder="Rechercher un produit, une boutique…"
             aria-label="Rechercher un produit ou une boutique"
-            className="h-10 w-full min-w-0 rounded-xl bg-neutral-50 pl-10 pr-3 text-sm placeholder:text-neutral-400 shadow-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-wcom-orange/20"
+            className="h-10 w-full min-w-0 rounded-xl bg-neutral-50/80 border border-neutral-200/60 pl-10 pr-3 text-sm placeholder:text-neutral-400 shadow-sm transition focus:bg-white focus:border-wcom-orange/50 focus:outline-none focus:ring-2 focus:ring-wcom-orange/20"
           />
         </form>
 
-        {/* Quick actions */}
-        <nav aria-label="Actions du compte" className="order-2 ml-auto flex min-w-0 shrink-0 items-center text-neutral-600 lg:order-3 lg:gap-1">
+        {/* Quick actions (Favorites, Notifications, Cart, Profile) */}
+        <nav aria-label="Actions du compte" className="order-2 ml-auto flex min-w-0 shrink-0 items-center gap-1 text-neutral-600 lg:order-3 lg:gap-1.5">
           {user && (
             <>
+              {/* Favorites */}
               <Link
                 href="/favorites"
-                className="grid h-9 w-9 place-items-center rounded-lg hover:bg-neutral-100 lg:h-auto lg:w-auto lg:rounded-sm lg:p-2"
+                className={cn(
+                  "grid h-9 w-9 place-items-center rounded-xl transition hover:bg-neutral-100",
+                  pathname === "/favorites"
+                    ? "bg-red-50 text-red-500"
+                    : "text-neutral-600 hover:text-neutral-900"
+                )}
                 aria-label="Favoris"
+                title="Favoris"
               >
-                <Heart className="h-5 w-5" />
+                <Heart className="h-4.5 w-4.5" />
               </Link>
+
+              {/* Notifications */}
               <Link
                 href="/notifications"
-                className="grid h-9 w-9 place-items-center rounded-lg hover:bg-neutral-100 lg:h-auto lg:w-auto lg:rounded-sm lg:p-2"
+                className={cn(
+                  "grid h-9 w-9 place-items-center rounded-xl transition hover:bg-neutral-100",
+                  pathname === "/notifications"
+                    ? "bg-amber-50 text-amber-600"
+                    : "text-neutral-600 hover:text-neutral-900"
+                )}
                 aria-label="Notifications"
+                title="Notifications"
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-4.5 w-4.5" />
               </Link>
+
+              {/* Cart */}
               <Link
                 href="/cart"
-                className="relative grid h-9 w-9 place-items-center rounded-lg hover:bg-neutral-100 lg:h-auto lg:w-auto lg:rounded-sm lg:p-2"
+                className={cn(
+                  "relative grid h-9 w-9 place-items-center rounded-xl transition hover:bg-neutral-100",
+                  pathname === "/cart"
+                    ? "bg-wcom-orange/10 text-wcom-orange"
+                    : "text-neutral-600 hover:text-neutral-900"
+                )}
                 aria-label="Panier"
+                title="Panier"
               >
-                <ShoppingBag className="h-5 w-5" />
-                <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-wcom-orange px-1 text-[10px] font-bold text-white lg:-right-0.5 lg:-top-0.5">
-                  2
-                </span>
+                <ShoppingBag className="h-4.5 w-4.5" />
+                {cartCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-wcom-orange px-1 text-[10px] font-black text-white shadow-sm">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
+                )}
               </Link>
+
+              {/* Profile / Account Settings button (without logout) */}
               <Link
                 href="/profile"
-                className="ml-1 inline-flex h-9 w-9 items-center justify-center gap-2 rounded-lg border border-neutral-200 text-sm hover:bg-neutral-50 lg:ml-2 lg:h-auto lg:w-auto lg:rounded-sm lg:px-3 lg:py-1.5"
+                className={cn(
+                  "ml-1 flex h-9 items-center gap-2 rounded-xl px-2.5 text-xs sm:text-sm font-semibold transition border",
+                  pathname.startsWith("/profile")
+                    ? "bg-wcom-orange/10 border-wcom-orange/30 text-wcom-orange shadow-sm"
+                    : "bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300"
+                )}
                 aria-label="Mon compte"
+                title="Options et profil du compte"
               >
-                <User className="h-4 w-4" />
-                <span className="hidden font-semibold lg:inline">
-                  {user.displayName || user.email?.split('@')[0] || "Mon compte"}
+                <div className="grid h-5 w-5 place-items-center rounded-full bg-neutral-100 text-neutral-600">
+                  <User className="h-3 w-3" />
+                </div>
+                <span className="hidden font-bold lg:inline max-w-[120px] truncate">
+                  {user.displayName || user.email?.split("@")[0] || "Compte"}
                 </span>
               </Link>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                aria-label="Se déconnecter"
-                className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 text-sm text-red-600 hover:bg-red-50 lg:h-auto lg:w-auto lg:rounded-sm lg:px-3 lg:py-1.5"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
             </>
           )}
+
           {!user && !loading && (
-            <div className="flex items-center gap-1 lg:gap-2">
+            <div className="flex items-center gap-1.5 lg:gap-2">
               <Link
                 href="/login"
-                className="inline-flex h-9 items-center rounded-lg px-2.5 text-sm font-semibold text-wcom-orange hover:bg-wcom-orange/5 lg:h-auto lg:rounded-sm lg:px-3 lg:py-1.5"
+                className="inline-flex h-9 items-center rounded-xl px-3 text-xs sm:text-sm font-bold text-neutral-700 hover:bg-neutral-100 transition"
               >
-                <span className="lg:hidden">Connexion</span>
-                <span className="hidden lg:inline">Se connecter</span>
+                Connexion
               </Link>
               <Link
                 href="/register"
-                className="inline-flex h-9 items-center rounded-lg bg-wcom-orange px-3 text-sm font-semibold text-white hover:bg-wcom-orange/90 lg:h-auto lg:rounded-sm lg:px-4 lg:py-1.5"
+                className="inline-flex h-9 items-center rounded-xl bg-wcom-orange px-3.5 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-orange-600 transition"
               >
-                <span className="sm:hidden">Inscription</span>
-                <span className="hidden sm:inline">Créer un compte</span>
+                Inscription
               </Link>
             </div>
           )}
         </nav>
       </div>
 
-      {/* Sub-nav (categories) */}
-      <div className="border-t border-neutral-100/70 bg-white/60 backdrop-blur-sm">
-        <div className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-600 lg:h-10 lg:gap-6 lg:px-6 lg:py-0">
+      {/* Sub-nav (Navigation tabs) */}
+      <div className="border-t border-neutral-100 bg-neutral-50/50 rounded-b-2xl">
+        <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-neutral-600 lg:h-11 lg:gap-6 lg:px-6 lg:py-0">
+          
+          {/* Location for mobile */}
           <div className="shrink-0 lg:hidden">
             <LocationPicker
               location={location}
@@ -255,25 +299,29 @@ export function TopNav() {
               onSelect={selectCommune}
             />
           </div>
+
           <nav
             aria-label="Navigation principale"
-            className="no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto whitespace-nowrap pr-6 [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)] lg:gap-6 lg:pr-0 lg:[mask-image:none]"
+            className="no-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto whitespace-nowrap pr-4 lg:gap-2 lg:pr-0"
           >
-            <Link href="/shop" className="shrink-0 rounded-lg px-2.5 py-1.5 hover:text-wcom-orange lg:p-0">
-              Boutique
-            </Link>
-            <Link href="/orders" className="shrink-0 rounded-lg px-2.5 py-1.5 hover:text-wcom-orange lg:p-0">
-              Mes commandes
-            </Link>
-            <Link href="/services" className="shrink-0 rounded-lg px-2.5 py-1.5 hover:text-wcom-orange lg:p-0">
-              Services
-            </Link>
-            <Link href="/livreur" className="shrink-0 rounded-lg px-2.5 py-1.5 hover:text-wcom-orange lg:p-0">
-              Livraison
-            </Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "shrink-0 rounded-lg px-3 py-1 text-xs sm:text-sm font-semibold transition",
+                  link.isActive
+                    ? "bg-white text-wcom-orange font-bold shadow-sm border border-neutral-200/60"
+                    : "text-neutral-600 hover:text-neutral-900 hover:bg-white/60"
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+
             <Link
               href="/seller-setup"
-              className="shrink-0 rounded-xl bg-wcom-green/10 px-3 py-1.5 font-bold text-wcom-green hover:bg-wcom-green/15 lg:ml-auto lg:py-1"
+              className="shrink-0 rounded-xl bg-wcom-green/10 px-3.5 py-1 text-xs sm:text-sm font-bold text-wcom-green hover:bg-wcom-green/15 transition lg:ml-auto"
             >
               Devenir vendeur →
             </Link>
@@ -283,3 +331,4 @@ export function TopNav() {
     </header>
   );
 }
+

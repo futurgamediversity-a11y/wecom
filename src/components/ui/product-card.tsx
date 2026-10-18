@@ -84,7 +84,7 @@ export function ProductCard({
             alt={p.name || "Produit"}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover transition-transform duration-500 ease-out group-hover:scale-108"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
           />
 
           {/* Clickable overlay to product page */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -99,7 +99,7 @@ async function uploadToCloudinary(file: File): Promise<string> {
   return data.secure_url as string;
 }
 
-export default function SellerDashboardPage() {
+function SellerDashboardContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1387,5 +1387,19 @@ export default function SellerDashboardPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function SellerDashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-neutral-50">
+          <LoadingSpinner />
+        </div>
+      }
+    >
+      <SellerDashboardContent />
+    </Suspense>
   );
 }

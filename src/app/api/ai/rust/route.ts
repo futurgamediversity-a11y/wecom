@@ -1,9 +1,35 @@
 import { NextResponse } from "next/server";
 
+interface CatalogProduct {
+  name?: string;
+  price?: number;
+  quantity?: number;
+  category?: string;
+}
+
+interface HistoryItem {
+  sender?: string;
+  text?: string;
+}
+
+interface StoreData {
+  name?: string;
+  plan?: string;
+  totalRevenue?: number;
+  monthlyRevenue?: number;
+  ordersCount?: number;
+  monthlyOrdersCount?: number;
+  products?: CatalogProduct[];
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { message, storeData, history } = body;
+    const { message, storeData, history } = body as {
+      message?: string;
+      storeData?: StoreData;
+      history?: HistoryItem[];
+    };
 
     if (!message || typeof message !== "string") {
       return NextResponse.json({ error: "Message requis." }, { status: 400 });
@@ -18,10 +44,10 @@ export async function POST(req: Request) {
     const monthlyRevenue = storeData?.monthlyRevenue ?? 0;
     const ordersCount = storeData?.ordersCount ?? 0;
     const monthlyOrdersCount = storeData?.monthlyOrdersCount ?? 0;
-    const products = Array.isArray(storeData?.products) ? storeData.products : [];
+    const products: CatalogProduct[] = Array.isArray(storeData?.products) ? storeData.products : [];
 
     const productsSummary = products.length > 0
-      ? products.map((p: any) => `- "${p.name}": ${p.price} XOF (Stock: ${p.quantity}, Catégorie: ${p.category})`).join("\n")
+      ? products.map((p) => `- "${p.name || "Article"}": ${p.price ?? 0} XOF (Stock: ${p.quantity ?? 0}, Catégorie: ${p.category || "Général"})`).join("\n")
       : "Aucun produit actuellement en vente.";
 
     const systemPrompt = `Tu es "Rust", l'assistant IA officiel et conseiller business d'élite de W-COM, la grande place de marché numérique de Côte d'Ivoire (Abidjan).
@@ -53,7 +79,7 @@ DIRECTIVES :
           for (const h of history.slice(-6)) {
             contents.push({
               role: h.sender === "user" ? "user" : "model",
-              parts: [{ text: h.text }]
+              parts: [{ text: h.text || "" }]
             });
           }
         }
@@ -98,9 +124,9 @@ DIRECTIVES :
     if (lower.includes("revenu") || lower.includes("chiffre") || lower.includes("gagné") || lower.includes("argent") || lower.includes("ca")) {
       dynamicReply = `📊 **Bilan Financier de ${storeName}** :\n\n- **Chiffre d'affaires ce mois-ci** : **${monthlyRevenue.toLocaleString("fr-FR")} FCFA** (${monthlyOrdersCount} commande(s)).\n- **Chiffre d'affaires global cumulé** : **${totalRevenue.toLocaleString("fr-FR")} FCFA** sur ${ordersCount} commande(s) au total.\n\n💡 *Astuce de Rust* : Vos ventes progressent bien ! Pensez à partager vos fiches produits directement sur vos statuts WhatsApp pour accélérer vos commandes cette semaine.`;
     } else if (lower.includes("stock") || lower.includes("produit") || lower.includes("rupture") || lower.includes("quantité")) {
-      const lowStock = products.filter((p: any) => p.quantity <= 3);
+      const lowStock = products.filter((p) => (p.quantity ?? 0) <= 3);
       if (lowStock.length > 0) {
-        dynamicReply = `⚠️ **Alerte Stocks pour ${storeName}** :\n\nVous avez **${lowStock.length} article(s)** avec un niveau de stock critique (≤ 3 unités) :\n${lowStock.map((p: any) => `• **${p.name}** : reste ${p.quantity} en stock (${p.price.toLocaleString("fr-FR")} FCFA)`).join("\n")}\n\n👉 Pensez à réapprovisionner ces articles rapidement pour éviter toute rupture face aux commandes de vos clients.`;
+        dynamicReply = `⚠️ **Alerte Stocks pour ${storeName}** :\n\nVous avez **${lowStock.length} article(s)** avec un niveau de stock critique (≤ 3 unités) :\n${lowStock.map((p) => `• **${p.name || "Article"}** : reste ${p.quantity ?? 0} en stock (${(p.price ?? 0).toLocaleString("fr-FR")} FCFA)`).join("\n")}\n\n👉 Pensez à réapprovisionner ces articles rapidement pour éviter toute rupture face aux commandes de vos clients.`;
       } else {
         dynamicReply = `✅ **Gestion des Stocks** :\n\nVous avez actuellement **${products.length} produit(s)** en ligne. Tous vos stocks sont à un niveau satisfaisant (aucun article en rupture critique). N'hésitez pas à élargir votre catalogue pour attirer davantage d'acheteurs !`;
       }
@@ -112,7 +138,7 @@ DIRECTIVES :
 
     return NextResponse.json({ reply: dynamicReply });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erreur serveur route Rust AI:", error);
     return NextResponse.json(
       { error: "Une erreur est survenue lors de la communication avec l'assistant Rust." },

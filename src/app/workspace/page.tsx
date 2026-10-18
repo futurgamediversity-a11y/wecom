@@ -8,16 +8,13 @@ import {
   CheckCircle2,
   ArrowLeft,
   Sparkles,
-  MapPin,
   Phone,
   User,
-  CreditCard,
-  ExternalLink,
   ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { formatXOF } from "@/lib/format";
 
 const SERVICE_CATEGORIES = [

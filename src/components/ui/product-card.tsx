@@ -8,7 +8,6 @@ import {
   Star,
   ShoppingBag,
   Zap,
-  ArrowRight,
   Check,
 } from "lucide-react";
 import { type Product } from "@/lib/types";

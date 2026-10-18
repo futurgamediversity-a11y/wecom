@@ -15,21 +15,14 @@ import {
   AlertCircle,
   Search,
   Trash2,
-  ArrowLeft,
   Settings,
   Bot,
   Send,
-  Sparkles,
   Calendar,
   CreditCard,
-  MessageSquare,
-  ShieldCheck,
-  Phone,
-  MapPin,
-  RefreshCw,
 } from "lucide-react";
 import { WComLogo } from "@/components/brand/wcom-logo";
-import { LoadingCircle, LoadingSpinner } from "@/components/ui/loading-spinner";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 import { findStoreIdByOwner, fetchStoreProfile, type StoreProfile } from "@/lib/store";
@@ -1352,6 +1345,7 @@ function SellerDashboardContent() {
                   <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
                     {imagePreviews.map((src, i) => (
                       <div key={i} className="relative h-16 w-16 shrink-0 rounded-xl overflow-hidden border border-neutral-200">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={src} alt="Aperçu" className="h-full w-full object-cover" />
                         <button
                           type="button"

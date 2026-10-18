@@ -3,8 +3,6 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { Upload, X, CheckCircle2, ChevronRight, Store, Package, CreditCard } from "lucide-react";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { LoadingCircle } from "@/components/ui/loading-spinner";
 
 const CATEGORIES = [

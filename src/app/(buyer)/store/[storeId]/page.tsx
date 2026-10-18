@@ -71,7 +71,7 @@ function StoreContent({ storeId }: { storeId: string }) {
 
   if (loading) {
     return (
-      <main className="mx-auto flex min-h-64 max-w-7xl items-center py-8">
+      <main className="mx-auto flex min-h-64 max-w-7xl items-center px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex w-full items-center gap-3">
           <ArrowLeft className="h-5 w-5 cursor-pointer text-neutral-500" onClick={() => router.back()} />
           <LoadingSpinner />
@@ -85,7 +85,7 @@ function StoreContent({ storeId }: { storeId: string }) {
   // permission errors behind a plausible-looking empty state.
   if (!storeData && loadError) {
     return (
-      <main className="mx-auto max-w-7xl py-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2 text-neutral-500">
           <ArrowLeft className="h-5 w-5 cursor-pointer" onClick={() => router.back()} />
           <span>Impossible de charger la boutique.</span>
@@ -102,7 +102,7 @@ function StoreContent({ storeId }: { storeId: string }) {
 
   if (!storeData && products.length === 0) {
     return (
-      <main className="mx-auto max-w-7xl py-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2 text-neutral-500">
           <ArrowLeft className="h-5 w-5 cursor-pointer" onClick={() => router.back()} />
           <span>Boutique non trouvée</span>
@@ -117,7 +117,7 @@ function StoreContent({ storeId }: { storeId: string }) {
     storeData ?? { name: "Boutique", image: STORE_FALLBACK_IMAGE };
 
   return (
-    <main className="mx-auto max-w-7xl py-8">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       {/* Back button */}
       <button
         onClick={() => router.back()}

@@ -1345,7 +1345,6 @@ function SellerDashboardContent() {
                   <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
                     {imagePreviews.map((src, i) => (
                       <div key={i} className="relative h-16 w-16 shrink-0 rounded-xl overflow-hidden border border-neutral-200">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={src} alt="Aperçu" className="h-full w-full object-cover" />
                         <button
                           type="button"

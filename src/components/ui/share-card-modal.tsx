@@ -307,7 +307,6 @@ export function ShareCardModal({
               <span className="text-xs">Génération du visuel...</span>
             </div>
           ) : dataUrl ? (
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={dataUrl}
               alt="Carte de partage"

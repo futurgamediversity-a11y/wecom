@@ -24,6 +24,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { toProduct } from "@/lib/firestore-schema";
 import { fetchStoreNames } from "@/lib/store";
+import { ProductCard } from "@/components/ui/product-card";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutGrid,
@@ -220,91 +221,5 @@ export default function ShopPage() {
     <Suspense fallback={<div className="mx-auto flex min-h-64 max-w-7xl items-center py-8"><LoadingSpinner /></div>}>
       <ShopContent />
     </Suspense>
-  );
-}
-
-function ProductCard({
-  p,
-}: {
-  p: Product;
-}) {
-  const { favorites, toggleFavorite, user } = useAuth();
-  const isFavorite = favorites.includes(p.id);
-  
-  const images = p.images || [];
-  const imageUrl = images.length > 0 ? images[0] : "/images/app_icon.png";
-  const rating = p.rating || 0;
-  const reviewCount = p.reviewCount || 0;
-  const price = p.price || 0;
-  
-  const handleFavoriteClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (user) {
-      toggleFavorite(p.id);
-    }
-  };
-  
-  return (
-    <div className="group flex flex-col overflow-hidden rounded-xl bg-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg">
-      <div className="relative aspect-square w-full overflow-hidden bg-neutral-100">
-        <Image
-          src={imageUrl}
-          alt={p.name || "Product"}
-          fill
-          sizes="(max-width: 768px) 50vw, 25vw"
-          className="object-cover transition group-hover:scale-105"
-        />
-        <Link
-          href={`/product/${p.id}`}
-          className="absolute inset-0"
-          aria-label={p.name || "Produit"}
-        />
-        <button
-          onClick={handleFavoriteClick}
-          className="absolute right-2 top-2 z-10 rounded-full bg-white p-2 shadow-md hover:bg-neutral-50"
-        >
-          <Heart 
-            className={`h-4 w-4 ${
-              isFavorite 
-                ? "fill-wcom-orange text-wcom-orange" 
-                : "text-neutral-400"
-            }`} 
-          />
-        </button>
-        {p.flashSale ? (
-          <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-sm bg-wcom-orange px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white">
-            <Zap className="h-3 w-3" /> Flash
-          </span>
-        ) : null}
-      </div>
-      <div className="flex flex-1 flex-col gap-1 p-3">
-        <Link
-          href={`/product/${p.id}`}
-          className="line-clamp-2 text-sm font-semibold text-neutral-900"
-        >
-          {p.name}
-        </Link>
-        {p.storeId ? (
-          <Link
-            href={`/store/${p.storeId}`}
-            className="text-xs text-neutral-500 hover:text-wcom-orange hover:underline"
-          >
-            {p.storeName}
-          </Link>
-        ) : (
-          <span className="text-xs text-neutral-500">{p.storeName}</span>
-        )}
-        <div className="mt-1 flex items-center gap-2">
-          <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-          <span className="text-xs font-semibold text-neutral-700">
-            {rating.toFixed(1)}
-          </span>
-          <span className="text-xs text-neutral-400">({reviewCount})</span>
-        </div>
-        <div className="mt-1 text-base font-black text-wcom-orange">
-          {formatXOF(price)}
-        </div>
-      </div>
-    </div>
   );
 }

@@ -113,10 +113,13 @@ export async function findStoreIdByOwner(ownerId: string): Promise<string | null
       query(
         collection(db, COLLECTIONS.stores),
         where("ownerId", "==", ownerId),
-        limit(1)
+        limit(5)
       )
     );
-    return snap.empty ? null : snap.docs[0].id;
+    if (snap.empty) return null;
+    // Find first store that is active / paid
+    const activeDoc = snap.docs.find((d) => d.data().isActive !== false);
+    return activeDoc ? activeDoc.id : null;
   } catch (error) {
     console.error("Error resolving store for owner:", error);
     return null;

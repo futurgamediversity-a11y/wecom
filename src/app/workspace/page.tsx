@@ -1,21 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { WComLogo } from "@/components/brand/wcom-logo";
-import { Briefcase, CheckCircle2, ArrowLeft, Sparkles, MapPin, Phone, User, Send } from "lucide-react";
+import {
+  Briefcase,
+  CheckCircle2,
+  ArrowLeft,
+  Sparkles,
+  MapPin,
+  Phone,
+  User,
+  CreditCard,
+  ExternalLink,
+  ShieldCheck,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { formatXOF } from "@/lib/format";
 
 const SERVICE_CATEGORIES = [
-  "Informatique & Design",
-  "Beauté, Coiffure & Soins",
-  "Réparation, Bâtiment & Plomberie",
-  "Cours particuliers & Coaching",
-  "Photo, Vidéo & Événementiel",
-  "Traiteur, Cuisine & Pâtisserie",
-  "Nettoyage & Déménagement",
+  "Tech & Digital",
+  "Maison & Travaux",
+  "Beauté & Soins",
+  "Événementiel & Photo",
+  "Cours & Coaching",
+  "Transport & Déménagement",
   "Autre prestation",
 ];
 
@@ -25,52 +36,99 @@ const COMMUNES = [
   "Yopougon",
   "Plateau",
   "Treichville",
+  "Koumassi",
+  "Port-Bouët",
   "Bingerville",
+  "Grand-Bassam",
   "Autre commune",
 ];
 
 export default function WorkspacePage() {
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1); // 1: Info, 2: Plan & Activation
   const [fullName, setFullName] = useState(user?.displayName || "");
   const [category, setCategory] = useState(SERVICE_CATEGORIES[0]);
   const [commune, setCommune] = useState(COMMUNES[0]);
   const [phone, setPhone] = useState("");
   const [description, setDescription] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
+  const [plan, setPlan] = useState<"monthly" | "annual">("monthly");
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [activated, setActivated] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const monthlyPrice = 5000;
+  const annualPrice = 50000;
+
+  const handleNextToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !phone.trim() || !description.trim()) {
       setError("Veuillez remplir tous les champs obligatoires.");
       return;
     }
+    setError("");
+    setStep(2);
+  };
 
+  const handleActivateService = async () => {
     setSubmitting(true);
     setError("");
 
     try {
+      const amount = plan === "monthly" ? monthlyPrice : annualPrice;
+      const origin = window.location.origin;
+
+      // 1. Initiate GeniusPay payment session for the workspace subscription
+      let paymentUrl = "";
+      try {
+        const res = await fetch("/api/geniuspay/init", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount,
+            returnUrl: `${origin}/workspace?workspace_success=true`,
+            cancelUrl: `${origin}/workspace?workspace_cancelled=true`,
+            description: `Abonnement Espace Pro W-COM (${plan === "monthly" ? "Mensuel" : "Annuel"}) - ${fullName}`,
+          }),
+        });
+        const data = await res.json();
+        if (data.paymentUrl) {
+          paymentUrl = data.paymentUrl;
+        }
+      } catch (err) {
+        console.warn("GeniusPay init optional:", err);
+      }
+
+      // 2. Save active service directly to Firestore with status: "active"
+      // NO "pending_review"! Instant activation for paid workspace.
       await addDoc(collection(db, "service_providers"), {
         userId: user?.uid || null,
         userEmail: user?.email || null,
         fullName: fullName.trim(),
+        role: `${category} • Indépendant`,
         category,
         commune,
         phone: phone.trim(),
         description: description.trim(),
-        hourlyRate: hourlyRate ? Number(hourlyRate) : null,
-        status: "pending_review",
+        hourlyRate: hourlyRate ? Number(hourlyRate) : 0,
+        plan,
+        status: "active",
+        isActive: true,
+        isPaid: true,
+        verified: true,
         createdAt: serverTimestamp(),
       });
 
-      setSubmitted(true);
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
+        return;
+      }
+
+      setActivated(true);
     } catch (err: any) {
-      console.error("Error creating service profile:", err);
-      // Even if firestore offline, provide graceful success for UX
-      setSubmitted(true);
+      console.error("Error activating service profile:", err);
+      setError(err.message || "Erreur lors de l'activation du service.");
     } finally {
       setSubmitting(false);
     }
@@ -116,15 +174,19 @@ export default function WorkspacePage() {
           </h2>
 
           <p className="mt-4 text-neutral-600 font-medium leading-relaxed max-w-lg mx-auto text-sm sm:text-base">
-            Cet espace dédié aux professionnels vous permet de publier vos compétences, de recevoir des demandes de devis et d'attirer des clients partout à Abidjan.
+            Cet espace dédié aux professionnels vous permet d'activer immédiatement votre espace de travail, de publier vos compétences et d'attirer des clients partout à Abidjan.
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
-              onClick={() => setShowModal(true)}
+              onClick={() => {
+                setShowModal(true);
+                setStep(1);
+                setActivated(false);
+              }}
               className="w-full sm:w-auto rounded-xl bg-[#A855F7] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#A855F7]/25 transition hover:-translate-y-0.5 hover:bg-[#9333EA]"
             >
-              Créer mon profil professionnel
+              Créer mon espace de travail
             </button>
             <Link
               href="/services"
@@ -136,38 +198,44 @@ export default function WorkspacePage() {
         </div>
       </div>
 
-      {/* Pro Registration Modal */}
+      {/* Pro Registration & Payment Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             
-            {submitted ? (
+            {activated ? (
               <div className="py-8 text-center space-y-4">
-                <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-green-100 text-green-600 shadow-sm">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-100 text-emerald-600 shadow-sm">
                   <CheckCircle2 className="h-8 w-8" />
                 </div>
-                <h3 className="text-2xl font-black text-neutral-900">Demande enregistrée avec succès !</h3>
+                <h3 className="text-2xl font-black text-neutral-900">Espace de travail activé !</h3>
                 <p className="text-neutral-600 text-sm max-w-md mx-auto leading-relaxed">
-                  Merci <strong>{fullName}</strong>. Votre profil de prestataire a bien été soumis. Notre équipe valide votre profil sous 24h pour le publier dans la section Services de W-COM.
+                  Félicitations <strong>{fullName}</strong>. Votre espace professionnel W-COM est immédiatement actif. Vos prestations sont désormais en ligne et visibles par les clients sur le hub des services.
                 </p>
-                <div className="pt-4">
+                <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                  <Link
+                    href="/services"
+                    className="rounded-xl bg-[#A855F7] px-6 py-3 text-sm font-bold text-white hover:bg-[#9333EA] transition text-center shadow-md"
+                  >
+                    Voir mon profil sur Services W-COM →
+                  </Link>
                   <button
                     onClick={() => {
                       setShowModal(false);
-                      setSubmitted(false);
+                      setActivated(false);
                     }}
-                    className="rounded-xl bg-[#A855F7] px-6 py-2.5 text-sm font-bold text-white hover:bg-[#9333EA] transition"
+                    className="rounded-xl border border-neutral-200 px-5 py-3 text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition"
                   >
                     Fermer
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : step === 1 ? (
               <div>
                 <div className="flex items-center justify-between border-b border-neutral-100 pb-4 mb-6">
                   <div>
-                    <h3 className="text-xl font-black text-neutral-900">Profil Professionnel</h3>
-                    <p className="text-xs text-neutral-500 mt-0.5">Remplissez vos informations pour être visible par les clients</p>
+                    <h3 className="text-xl font-black text-neutral-900">Étape 1 — Vos Informations</h3>
+                    <p className="text-xs text-neutral-500 mt-0.5">Décrivez votre activité pour votre profil professionnel</p>
                   </div>
                   <button
                     onClick={() => setShowModal(false)}
@@ -183,10 +251,10 @@ export default function WorkspacePage() {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-4 text-left">
+                <form onSubmit={handleNextToPayment} className="space-y-4 text-left">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-neutral-600 mb-1">
-                      Nom complet ou nom de votre entreprise *
+                      Nom complet ou nom professionnel *
                     </label>
                     <input
                       type="text"
@@ -247,7 +315,7 @@ export default function WorkspacePage() {
 
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-neutral-600 mb-1">
-                        Tarif indicatif (XOF)
+                        Tarif de départ indicatif (XOF)
                       </label>
                       <input
                         type="number"
@@ -283,13 +351,109 @@ export default function WorkspacePage() {
                     </button>
                     <button
                       type="submit"
-                      disabled={submitting}
-                      className="flex-1 rounded-xl bg-[#A855F7] py-2.5 text-sm font-bold text-white shadow-md hover:bg-[#9333EA] transition disabled:opacity-50"
+                      className="flex-1 rounded-xl bg-[#A855F7] py-2.5 text-sm font-bold text-white shadow-md hover:bg-[#9333EA] transition"
                     >
-                      {submitting ? "Envoi en cours..." : "Soumettre mon profil"}
+                      Continuer vers l'activation →
                     </button>
                   </div>
                 </form>
+              </div>
+            ) : (
+              /* Step 2: Plan Choice & Instant Activation */
+              <div>
+                <div className="flex items-center justify-between border-b border-neutral-100 pb-4 mb-6">
+                  <div>
+                    <h3 className="text-xl font-black text-neutral-900">Étape 2 — Forfait Espace Pro</h3>
+                    <p className="text-xs text-neutral-500 mt-0.5">Choisissez votre formule pour activer votre espace sans délai</p>
+                  </div>
+                  <button
+                    onClick={() => setStep(1)}
+                    className="text-xs font-bold text-neutral-400 hover:text-neutral-700"
+                  >
+                    ← Retour
+                  </button>
+                </div>
+
+                {error && (
+                  <div className="mb-4 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600 border border-red-100">
+                    {error}
+                  </div>
+                )}
+
+                <div className="space-y-4 mb-6">
+                  {/* Monthly plan */}
+                  <div
+                    onClick={() => setPlan("monthly")}
+                    className={`cursor-pointer rounded-2xl border p-4 transition ${
+                      plan === "monthly"
+                        ? "border-[#A855F7] bg-purple-50/50 shadow-md ring-2 ring-[#A855F7]/20"
+                        : "border-neutral-200 bg-white hover:border-neutral-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-base text-neutral-900">Formule Mensuelle</span>
+                          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-[#A855F7]">Flexible</span>
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-0.5">Visibilité complète sur le hub Services W-COM</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-lg font-black text-[#A855F7]">{formatXOF(monthlyPrice)}</span>
+                        <span className="block text-[10px] text-neutral-400">/ mois</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Annual plan */}
+                  <div
+                    onClick={() => setPlan("annual")}
+                    className={`cursor-pointer rounded-2xl border p-4 transition ${
+                      plan === "annual"
+                        ? "border-[#A855F7] bg-purple-50/50 shadow-md ring-2 ring-[#A855F7]/20"
+                        : "border-neutral-200 bg-white hover:border-neutral-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-base text-neutral-900">Formule Annuelle</span>
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">2 mois offerts</span>
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-0.5">Visibilité maximale prioritaire 12 mois</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-lg font-black text-emerald-600">{formatXOF(annualPrice)}</span>
+                        <span className="block text-[10px] text-neutral-400">/ an</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-neutral-50 p-4 border border-neutral-200/80 mb-6 flex items-start gap-3">
+                  <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-neutral-600 leading-relaxed">
+                    Votre profil est <strong>activé instantanément</strong> dès le règlement. Aucune attente de validation d'équipe n'est requise.
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="flex-1 rounded-xl border border-neutral-200 py-3 text-sm font-bold text-neutral-600 hover:bg-neutral-50"
+                  >
+                    Modifier mes infos
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={handleActivateService}
+                    className="flex-1 rounded-xl bg-[#A855F7] py-3 text-sm font-bold text-white shadow-md hover:bg-[#9333EA] transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {submitting ? "Activation en cours..." : `Activer mon espace (${formatXOF(plan === "monthly" ? monthlyPrice : annualPrice)})`}
+                  </button>
+                </div>
               </div>
             )}
           </div>

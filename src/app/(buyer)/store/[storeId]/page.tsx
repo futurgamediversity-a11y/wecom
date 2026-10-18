@@ -21,6 +21,7 @@ import { useAuth } from "@/lib/auth-context";
 import { toProduct, STORE_FALLBACK_IMAGE } from "@/lib/firestore-schema";
 import { fetchStoreProfile, type StoreProfile } from "@/lib/store";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ProductCard } from "@/components/ui/product-card";
 
 function StoreContent({ storeId }: { storeId: string }) {
   const [storeData, setStoreData] = useState<StoreProfile | null>(null);
@@ -207,10 +208,10 @@ function StoreContent({ storeId }: { storeId: string }) {
             {products.map((product) => (
               <ProductCard 
                 key={product.id} 
-                product={product}
-                favorites={favorites}
-                toggleFavorite={toggleFavorite}
-                user={user}
+                p={{
+                  ...product,
+                  storeName: store.name,
+                }}
               />
             ))}
           </div>
@@ -231,67 +232,4 @@ export default function StorePage({ params }: { params: Promise<{ storeId: strin
 async function StoreLoader({ params }: { params: Promise<{ storeId: string }> }) {
   const { storeId } = await params;
   return <StoreContent storeId={storeId} />;
-}
-
-function ProductCard({ 
-  product, 
-  favorites, 
-  toggleFavorite, 
-  user 
-}: { 
-  product: Product;
-  favorites: string[];
-  toggleFavorite: (id: string) => void;
-  user: any;
-}) {
-  const isFavorite = favorites.includes(product.id);
-  const images = product.images || [];
-  const imageUrl = images.length > 0 ? images[0] : "/images/app_icon.png";
-  
-  const handleFavoriteClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (user) {
-      toggleFavorite(product.id);
-    }
-  };
-
-  return (
-    <Link
-      href={`/product/${product.id}`}
-      className="group flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white transition hover:-translate-y-0.5 hover:shadow-card"
-    >
-      <div className="relative aspect-square w-full overflow-hidden bg-neutral-100">
-        <Image
-          src={imageUrl}
-          alt={product.name || "Produit"}
-          fill
-          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className="object-cover transition group-hover:scale-105"
-        />
-        <button
-          onClick={handleFavoriteClick}
-          className="absolute right-2 top-2 rounded-full border border-neutral-200 bg-white/90 p-2 text-neutral-600 backdrop-blur-sm hover:border-wcom-orange/40 hover:text-wcom-orange"
-          aria-label="Ajouter aux favoris"
-        >
-          <Heart 
-            className={`h-4 w-4 ${
-              isFavorite 
-                ? "fill-wcom-orange text-wcom-orange" 
-                : ""
-            }`} 
-          />
-        </button>
-      </div>
-      <div className="flex flex-1 flex-col p-3">
-        <p className="line-clamp-2 text-sm font-semibold text-neutral-900">
-          {product.name || "Produit"}
-        </p>
-        <div className="mt-auto pt-2">
-          <p className="text-sm font-black text-wcom-orange">
-            {formatXOF(product.price || 0)}
-          </p>
-        </div>
-      </div>
-    </Link>
-  );
 }

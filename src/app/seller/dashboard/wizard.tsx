@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef } from "react";
 import Image from "next/image";
@@ -103,40 +103,41 @@ export function StoreWizard({
       const bannerUrl = await uploadImage(storeBanner!);
       const prodUrl = await uploadImage(prodImg!);
 
-      // 2. Create store (inactive until payment confirmed)
-      const storeRef = await addDoc(collection(db, "stores"), {
-        ownerId: userId,
-        storeName: storeName,
-        description: storeDesc,
-        category: storeCategory,
-        profileImageUrl: logoUrl,
-        bannerImageUrl: bannerUrl,
-        plan: plan,
-        isActive: false, // Wait for payment
-        createdAt: serverTimestamp(),
-      });
+      // 2. Prepare pending store setup data in sessionStorage
+      // IMPORTANT: Do NOT write to Firestore before payment is verified!
+      const setupPayload = {
+        userId,
+        storeName,
+        storeDesc,
+        storeCategory,
+        logoUrl,
+        bannerUrl,
+        plan,
+        prodName,
+        prodPrice: Number(prodPrice),
+        prodDesc,
+        prodQty: Number(prodQty),
+        prodUrl,
+      };
 
-      // 3. Create first product
-      await addDoc(collection(db, "products"), {
-        storeId: storeRef.id,
-        sellerId: userId,
-        name: prodName,
-        price: Number(prodPrice),
-        description: prodDesc,
-        quantity: Number(prodQty),
-        category: storeCategory,
-        imageUrl: prodUrl,
-        imageUrls: [prodUrl],
-        status: "active",
-        createdAt: serverTimestamp(),
-      });
+      try {
+        sessionStorage.setItem("wcom_pending_store_setup", JSON.stringify(setupPayload));
+      } catch (storageErr) {
+        console.warn("sessionStorage warning:", storageErr);
+      }
 
-      // 4. Initiate GeniusPay payment session
+      // 3. Initiate GeniusPay payment session with explicit success and cancel endpoints
       const amount = plan === "monthly" ? Number(monthlyPrice) : Number(annualPrice);
+      const origin = window.location.origin;
       const res = await fetch("/api/geniuspay/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, returnUrl: window.location.href })
+        body: JSON.stringify({
+          amount,
+          returnUrl: `${origin}/seller/dashboard?payment_success=true`,
+          cancelUrl: `${origin}/seller/dashboard?payment_cancelled=true`,
+          description: `Abonnement W-COM Vente (${plan === "monthly" ? "Mensuel" : "Annuel"}) - ${storeName}`,
+        }),
       });
       
       const data = await res.json();

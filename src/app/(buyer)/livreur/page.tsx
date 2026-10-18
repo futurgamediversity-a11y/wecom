@@ -15,8 +15,12 @@ import {
   Sparkles,
   ArrowRight,
   Send,
+  AlertCircle,
 } from "lucide-react";
 import { formatXOF } from "@/lib/format";
+import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const TARIFFS = [
   { commune: "Cocody (Angré, Riviera, 2 Plateaux)", delay: "1h à 2h30", price: 1500, popular: true },
@@ -29,12 +33,27 @@ const TARIFFS = [
   { commune: "Grand-Bassam", delay: "Même jour", price: 3000, popular: false },
 ];
 
+interface RealTrackingResult {
+  code: string;
+  status: string;
+  commune: string;
+  address: string;
+  courier?: string;
+  courierPhone?: string;
+  itemsCount: number;
+  totalAmount: number;
+  steps: { title: string; done: boolean; active?: boolean }[];
+}
+
 export default function LivreurPage() {
   const [trackingCode, setTrackingCode] = useState("");
-  const [trackingResult, setTrackingResult] = useState<any | null>(null);
+  const [trackingResult, setTrackingResult] = useState<RealTrackingResult | null>(null);
   const [trackingError, setTrackingError] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [submittingApply, setSubmittingApply] = useState(false);
+  const [applyError, setApplyError] = useState("");
 
   // Form for driver
   const [driverName, setDriverName] = useState("");
@@ -42,41 +61,158 @@ export default function LivreurPage() {
   const [vehicle, setVehicle] = useState("Moto");
   const [driverCommune, setDriverCommune] = useState("Cocody");
 
-  const handleTrack = (e: React.FormEvent) => {
+  const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
-    const code = trackingCode.trim().toUpperCase();
-    if (!code) {
-      setTrackingError("Veuillez saisir un numéro de suivi.");
+    const rawCode = trackingCode.trim();
+    if (!rawCode) {
+      setTrackingError("Veuillez saisir un numéro de suivi ou référence de commande.");
       setTrackingResult(null);
       return;
     }
 
+    setIsSearching(true);
     setTrackingError("");
-    // Realistic tracking simulation
-    setTrackingResult({
-      code: code.startsWith("WCOM-") ? code : `WCOM-${code}`,
-      status: "En cours de livraison",
-      commune: "Cocody, Abidjan",
-      courier: "Ibrahim K.",
-      courierPhone: "+225 07 12 34 56",
-      estimatedTime: "Dans 35 minutes",
-      steps: [
-        { title: "Commande prise en charge par le vendeur", done: true, time: "10:15" },
-        { title: "Colis récupéré par le livreur W-COM", done: true, time: "11:30" },
-        { title: "En route vers votre adresse", done: true, time: "11:45", active: true },
-        { title: "Livré à destination", done: false, time: "En attente" },
-      ],
-    });
+    setTrackingResult(null);
+
+    try {
+      // 1. Search directly by doc ID in 'orders'
+      let orderDocSnap = await getDoc(doc(db, "orders", rawCode));
+
+      // 2. If not found and user typed with WCOM- or without, try alternative
+      if (!orderDocSnap.exists()) {
+        const altId = rawCode.startsWith("WCOM-")
+          ? rawCode.replace(/^WCOM-/i, "")
+          : `WCOM-${rawCode}`;
+        orderDocSnap = await getDoc(doc(db, "orders", altId));
+      }
+
+      // 3. If still not found, search by trackingNumber field or orderId field
+      let orderData: any = null;
+      let orderId = rawCode;
+
+      if (orderDocSnap.exists()) {
+        orderData = orderDocSnap.data();
+        orderId = orderDocSnap.id;
+      } else {
+        const qTracking = query(
+          collection(db, "orders"),
+          where("trackingNumber", "==", rawCode)
+        );
+        const qSnap = await getDocs(qTracking);
+        if (!qSnap.empty) {
+          orderData = qSnap.docs[0].data();
+          orderId = qSnap.docs[0].id;
+        }
+      }
+
+      if (!orderData) {
+        setTrackingError(
+          "Aucune commande trouvée avec cette référence dans la base de données W-COM. Veuillez vérifier l'identifiant."
+        );
+        return;
+      }
+
+      // Compute status and steps from genuine Firestore order document
+      const rawStatus = (orderData.status || "pending").toString().toLowerCase();
+      let statusLabel = "En attente de confirmation";
+      let isDelivered = false;
+      let isInDelivery = false;
+      let isConfirmed = false;
+
+      if (["delivered", "livrée", "livre"].includes(rawStatus)) {
+        statusLabel = "Colis livré";
+        isDelivered = true;
+        isInDelivery = true;
+        isConfirmed = true;
+      } else if (["in_delivery", "en livraison", "shipped"].includes(rawStatus)) {
+        statusLabel = "En cours de livraison";
+        isInDelivery = true;
+        isConfirmed = true;
+      } else if (["confirmed", "confirmée", "processing", "en cours"].includes(rawStatus)) {
+        statusLabel = "Commande confirmée";
+        isConfirmed = true;
+      } else if (["cancelled", "annulée"].includes(rawStatus)) {
+        statusLabel = "Commande annulée";
+      }
+
+      const steps = [
+        {
+          title: "Commande enregistrée",
+          done: true,
+          active: !isConfirmed && rawStatus !== "cancelled",
+        },
+        {
+          title: "Commande confirmée par le vendeur",
+          done: isConfirmed,
+          active: isConfirmed && !isInDelivery,
+        },
+        {
+          title: "Prise en charge par le coursier W-COM",
+          done: isInDelivery,
+          active: isInDelivery && !isDelivered,
+        },
+        {
+          title: "Livré à l'adresse de destination",
+          done: isDelivered,
+          active: isDelivered,
+        },
+      ];
+
+      const deliveryInfo = orderData.deliveryInfo || {};
+      const commune =
+        deliveryInfo.commune || deliveryInfo.common || "Abidjan";
+      const fullAddress =
+        deliveryInfo.fullAddress ||
+        deliveryInfo.address ||
+        (deliveryInfo.neighborhood ? `${deliveryInfo.neighborhood}, ${commune}` : commune);
+
+      setTrackingResult({
+        code: orderId,
+        status: statusLabel,
+        commune,
+        address: fullAddress,
+        courier: orderData.courierName || undefined,
+        courierPhone: orderData.courierPhone || undefined,
+        itemsCount: Array.isArray(orderData.items) ? orderData.items.length : 1,
+        totalAmount: orderData.totalAmount || 0,
+        steps,
+      });
+    } catch (err) {
+      console.error("Erreur lors de la recherche du colis Firestore:", err);
+      setTrackingError("Une erreur est survenue lors de la recherche dans la base de données.");
+    } finally {
+      setIsSearching(false);
+    }
   };
 
-  const handleApply = (e: React.FormEvent) => {
+  const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!driverName.trim() || !driverPhone.trim()) return;
-    setApplied(true);
+
+    setSubmittingApply(true);
+    setApplyError("");
+
+    try {
+      // Save application directly to Firebase Firestore
+      await addDoc(collection(db, "courier_applications"), {
+        fullName: driverName.trim(),
+        phone: driverPhone.trim(),
+        vehicle,
+        commune: driverCommune,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+      setApplied(true);
+    } catch (err) {
+      console.error("Erreur lors de l'enregistrement de la candidature:", err);
+      setApplyError("Impossible d'enregistrer votre candidature. Veuillez réessayer.");
+    } finally {
+      setSubmittingApply(false);
+    }
   };
 
   return (
-    <main className="mx-auto max-w-7xl py-6 md:py-10 animate-in fade-in duration-500">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8 animate-in fade-in duration-500">
       
       {/* Hero Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-950 p-6 sm:p-12 text-white shadow-xl mb-12">
@@ -115,7 +251,7 @@ export default function LivreurPage() {
               </div>
               <div>
                 <h2 className="text-xl font-black text-neutral-900">Suivre un colis</h2>
-                <p className="text-xs text-neutral-500">Consultez l'état d'acheminement de votre commande</p>
+                <p className="text-xs text-neutral-500">Recherchez votre colis par référence de commande Firestore</p>
               </div>
             </div>
 
@@ -124,19 +260,23 @@ export default function LivreurPage() {
                 type="text"
                 value={trackingCode}
                 onChange={(e) => setTrackingCode(e.target.value)}
-                placeholder="Ex: WCOM-1234 ou 8 chiffres..."
+                placeholder="Ex: Identifiant de commande..."
                 className="h-12 flex-1 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-800 focus:bg-white focus:border-wcom-orange focus:ring-2 focus:ring-wcom-orange/20 outline-none uppercase placeholder:normal-case shadow-sm"
               />
               <button
                 type="submit"
-                className="h-12 rounded-2xl bg-wcom-orange px-6 text-sm font-bold text-white shadow-md shadow-wcom-orange/25 transition hover:bg-orange-600 shrink-0"
+                disabled={isSearching}
+                className="h-12 rounded-2xl bg-wcom-orange px-6 text-sm font-bold text-white shadow-md shadow-wcom-orange/25 transition hover:bg-orange-600 shrink-0 disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Suivre mon colis
+                {isSearching ? <LoadingSpinner /> : "Suivre mon colis"}
               </button>
             </form>
 
             {trackingError && (
-              <p className="mt-3 text-xs font-semibold text-red-500">{trackingError}</p>
+              <div className="mt-4 flex items-center gap-2 rounded-xl bg-red-50 p-3.5 text-xs font-semibold text-red-600 border border-red-100">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{trackingError}</span>
+              </div>
             )}
 
             {/* Tracking Result Card */}
@@ -145,11 +285,11 @@ export default function LivreurPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-green-200/60 pb-4 mb-4">
                   <div>
                     <span className="text-[11px] font-bold uppercase text-green-700 tracking-wider">
-                      Numéro de suivi
+                      Identifiant commande Firestore
                     </span>
-                    <h3 className="text-lg font-black text-neutral-900">{trackingResult.code}</h3>
+                    <h3 className="text-lg font-black text-neutral-900 break-all">{trackingResult.code}</h3>
                   </div>
-                  <div className="inline-flex items-center gap-1.5 rounded-full bg-green-600 text-white px-3 py-1 text-xs font-bold">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-green-600 text-white px-3 py-1 text-xs font-bold shrink-0 self-start sm:self-center">
                     <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
                     {trackingResult.status}
                   </div>
@@ -157,40 +297,59 @@ export default function LivreurPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                   <div className="rounded-xl bg-white p-3 border border-neutral-100">
-                    <span className="text-xs text-neutral-400 block font-medium">Livreur assigné</span>
-                    <p className="font-bold text-sm text-neutral-800">{trackingResult.courier}</p>
-                    <a
-                      href={`tel:${trackingResult.courierPhone}`}
-                      className="inline-flex items-center gap-1 text-xs text-wcom-green font-bold mt-1 hover:underline"
-                    >
-                      <Phone className="h-3 w-3" /> {trackingResult.courierPhone}
-                    </a>
+                    <span className="text-xs text-neutral-400 block font-medium">Destination</span>
+                    <p className="font-bold text-sm text-neutral-800">{trackingResult.commune}</p>
+                    <p className="text-xs text-neutral-500 mt-0.5 truncate">{trackingResult.address}</p>
                   </div>
                   <div className="rounded-xl bg-white p-3 border border-neutral-100">
-                    <span className="text-xs text-neutral-400 block font-medium">Délai estimé</span>
-                    <p className="font-bold text-sm text-neutral-800">{trackingResult.estimatedTime}</p>
-                    <span className="text-xs text-neutral-400">Destination: {trackingResult.commune}</span>
+                    <span className="text-xs text-neutral-400 block font-medium">Contenu & Montant</span>
+                    <p className="font-bold text-sm text-neutral-800">{formatXOF(trackingResult.totalAmount)}</p>
+                    <span className="text-xs text-neutral-400">{trackingResult.itemsCount} article(s)</span>
                   </div>
                 </div>
 
-                {/* Timeline */}
+                {trackingResult.courier && (
+                  <div className="mb-6 rounded-xl bg-white p-3 border border-neutral-100 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs text-neutral-400 block font-medium">Livreur assigné</span>
+                      <p className="font-bold text-sm text-neutral-800">{trackingResult.courier}</p>
+                    </div>
+                    {trackingResult.courierPhone && (
+                      <a
+                        href={`tel:${trackingResult.courierPhone}`}
+                        className="inline-flex items-center gap-1 text-xs text-wcom-green font-bold hover:underline"
+                      >
+                        <Phone className="h-3.5 w-3.5" /> Appeler
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Real Timeline */}
                 <div className="space-y-4">
-                  {trackingResult.steps.map((step: any, idx: number) => (
+                  {trackingResult.steps.map((step, idx) => (
                     <div key={idx} className="flex items-center gap-3">
-                      <div className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold shrink-0 ${
-                        step.done
-                          ? "bg-wcom-green text-white"
-                          : "bg-neutral-200 text-neutral-500"
-                      }`}>
+                      <div
+                        className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold shrink-0 ${
+                          step.done
+                            ? "bg-wcom-green text-white"
+                            : "bg-neutral-200 text-neutral-500"
+                        }`}
+                      >
                         {step.done ? "✓" : idx + 1}
                       </div>
                       <div className="flex-1 flex items-center justify-between min-w-0">
-                        <p className={`text-sm ${step.active ? "font-black text-neutral-900" : step.done ? "font-bold text-neutral-800" : "text-neutral-400"}`}>
+                        <p
+                          className={`text-sm ${
+                            step.active
+                              ? "font-black text-neutral-900"
+                              : step.done
+                              ? "font-bold text-neutral-800"
+                              : "text-neutral-400"
+                          }`}
+                        >
                           {step.title}
                         </p>
-                        <span className="text-xs font-medium text-neutral-400 shrink-0 ml-2">
-                          {step.time}
-                        </span>
                       </div>
                     </div>
                   ))}
@@ -204,7 +363,7 @@ export default function LivreurPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-xl font-black text-neutral-900">Grille tarifaire par commune</h3>
-                <p className="text-xs text-neutral-500 mt-0.5">Tarifs fixes et transparents appliqués à la livraison</p>
+                <p className="text-xs text-neutral-500 mt-0.5">Tarifs indicatifs appliqués à la livraison urbaine</p>
               </div>
               <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-600">
                 Abidjan & périphérie
@@ -314,14 +473,16 @@ export default function LivreurPage() {
                 <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-green-100 text-green-600 shadow-sm">
                   <CheckCircle2 className="h-8 w-8" />
                 </div>
-                <h3 className="text-2xl font-black text-neutral-900">Candidature reçue !</h3>
+                <h3 className="text-2xl font-black text-neutral-900">Candidature enregistrée !</h3>
                 <p className="text-neutral-600 text-xs sm:text-sm max-w-sm mx-auto leading-relaxed">
-                  Merci <strong>{driverName}</strong>. Notre responsable de flotte prendra contact avec vous sur WhatsApp au <strong>{driverPhone}</strong> sous 24h ouvrées.
+                  Votre candidature a bien été enregistrée dans notre base de données. Notre responsable de flotte prendra contact avec vous sur WhatsApp au <strong>{driverPhone}</strong> sous 24h ouvrées.
                 </p>
                 <button
                   onClick={() => {
                     setShowApplyModal(false);
                     setApplied(false);
+                    setDriverName("");
+                    setDriverPhone("");
                   }}
                   className="rounded-xl bg-wcom-green px-6 py-2.5 text-sm font-bold text-white hover:bg-[#007b2f] transition"
                 >
@@ -334,6 +495,12 @@ export default function LivreurPage() {
                   <h3 className="text-lg font-black text-neutral-900">Rejoindre la flotte W-COM</h3>
                   <button onClick={() => setShowApplyModal(false)} className="text-neutral-400 hover:text-neutral-700">✕</button>
                 </div>
+
+                {applyError && (
+                  <div className="mb-4 rounded-xl bg-red-50 p-3 text-xs text-red-600 font-medium">
+                    {applyError}
+                  </div>
+                )}
 
                 <form onSubmit={handleApply} className="space-y-4 text-left">
                   <div>
@@ -401,9 +568,10 @@ export default function LivreurPage() {
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 rounded-xl bg-wcom-green py-2.5 text-sm font-bold text-white shadow-md hover:bg-[#007b2f]"
+                      disabled={submittingApply}
+                      className="flex-1 rounded-xl bg-wcom-green py-2.5 text-sm font-bold text-white shadow-md hover:bg-[#007b2f] disabled:opacity-50"
                     >
-                      Envoyer ma candidature
+                      {submittingApply ? "Envoi..." : "Envoyer ma candidature"}
                     </button>
                   </div>
                 </form>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -11,13 +11,15 @@ import {
   Briefcase,
   Sparkles,
   ArrowRight,
-  Filter,
   Clock,
   ShieldCheck,
 } from "lucide-react";
 import { formatXOF } from "@/lib/format";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-interface ServiceItem {
+export interface ServiceItem {
   id: string;
   provider: string;
   role: string;
@@ -34,137 +36,6 @@ interface ServiceItem {
   phone: string;
 }
 
-const MOCK_SERVICES: ServiceItem[] = [
-  {
-    id: "s1",
-    provider: "Koffi Développeur",
-    role: "Création de sites web & Boutiques en ligne",
-    category: "Tech & Digital",
-    commune: "Cocody",
-    rating: 4.9,
-    reviewsCount: 28,
-    startingPrice: 50000,
-    priceUnit: "par projet",
-    verified: true,
-    avatarBg: "bg-blue-100 text-blue-700",
-    avatarText: "KD",
-    description: "Développeur Next.js & mobile. Spécialiste e-commerce pour commerces et PME à Abidjan.",
-    phone: "+2250701020304",
-  },
-  {
-    id: "s2",
-    provider: "Awa Coiffure & Beauté",
-    role: "Coiffure & Tresses africaines à domicile",
-    category: "Beauté & Soins",
-    commune: "Marcory",
-    rating: 5.0,
-    reviewsCount: 42,
-    startingPrice: 15000,
-    priceUnit: "par prestation",
-    verified: true,
-    avatarBg: "bg-pink-100 text-pink-700",
-    avatarText: "AC",
-    description: "Coiffeuse professionnelle à domicile ou en salon. Nattes, tissages, dreadlocks et soins capillaires.",
-    phone: "+2250505060708",
-  },
-  {
-    id: "s3",
-    provider: "Mamadou Dépannage Climatisation",
-    role: "Installation & Entretien de climatiseurs",
-    category: "Maison & Travaux",
-    commune: "Yopougon",
-    rating: 4.8,
-    reviewsCount: 35,
-    startingPrice: 20000,
-    priceUnit: "par intervention",
-    verified: true,
-    avatarBg: "bg-cyan-100 text-cyan-700",
-    avatarText: "MC",
-    description: "Technicien certifié en climatisation et froid. Déplacement rapide pour particuliers et bureaux.",
-    phone: "+2250102030405",
-  },
-  {
-    id: "s4",
-    provider: "Studio Ivoire Photo",
-    role: "Photographe événementiel, mariage & shooting",
-    category: "Événementiel & Photo",
-    commune: "Plateau",
-    rating: 4.9,
-    reviewsCount: 19,
-    startingPrice: 40000,
-    priceUnit: "par séance",
-    verified: true,
-    avatarBg: "bg-purple-100 text-purple-700",
-    avatarText: "SI",
-    description: "Couverture photo et vidéo de mariages, anniversaires, portraits professionnels et produits e-commerce.",
-    phone: "+2250748495051",
-  },
-  {
-    id: "s5",
-    provider: "Délices d'Abidjan Traiteur",
-    role: "Buffets africains & Cocktails d'entreprise",
-    category: "Événementiel & Photo",
-    commune: "Cocody",
-    rating: 4.9,
-    reviewsCount: 31,
-    startingPrice: 60000,
-    priceUnit: "selon convives",
-    verified: true,
-    avatarBg: "bg-amber-100 text-amber-700",
-    avatarText: "DA",
-    description: "Plats ivoiriens raffinés (Attiéké poisson braisé, Kedjenou, Alloco) et pâtisseries pour vos réceptions.",
-    phone: "+2250789876543",
-  },
-  {
-    id: "s6",
-    provider: "Professeur Bamba",
-    role: "Soutien scolaire & Cours de Mathématiques",
-    category: "Cours & Coaching",
-    commune: "Bingerville",
-    rating: 4.7,
-    reviewsCount: 14,
-    startingPrice: 25000,
-    priceUnit: "par mois",
-    verified: false,
-    avatarBg: "bg-emerald-100 text-emerald-700",
-    avatarText: "PB",
-    description: "Enseignant certifié. Préparation aux examens (BEPC, BAC) et remise à niveau pour collégiens et lycéens.",
-    phone: "+2250103050709",
-  },
-  {
-    id: "s7",
-    provider: "Diallo Électricité & Plomberie",
-    role: "Dépannage d'urgence & Rénovation",
-    category: "Maison & Travaux",
-    commune: "Treichville",
-    rating: 4.8,
-    reviewsCount: 22,
-    startingPrice: 15000,
-    priceUnit: "par devis",
-    verified: true,
-    avatarBg: "bg-orange-100 text-orange-700",
-    avatarText: "DE",
-    description: "Artisan qualifié disponible 7j/7 pour fuites d'eau, pannes électriques et installations neuves.",
-    phone: "+2250711223344",
-  },
-  {
-    id: "s8",
-    provider: "Express Déménagement Abidjan",
-    role: "Déménagement & Transport de marchandises",
-    category: "Transport & Déménagement",
-    commune: "Cocody",
-    rating: 4.9,
-    reviewsCount: 40,
-    startingPrice: 35000,
-    priceUnit: "par course",
-    verified: true,
-    avatarBg: "bg-indigo-100 text-indigo-700",
-    avatarText: "ED",
-    description: "Équipe avec camions bâchés pour déménagement d'appartements et transport de colis volumineux sécurisé.",
-    phone: "+2250777889900",
-  },
-];
-
 const CATEGORIES = [
   "Tous les services",
   "Tech & Digital",
@@ -175,15 +46,82 @@ const CATEGORIES = [
   "Transport & Déménagement",
 ];
 
-const COMMUNES = ["Toutes les communes", "Cocody", "Marcory", "Yopougon", "Plateau", "Treichville", "Bingerville"];
+const COMMUNES = [
+  "Toutes les communes",
+  "Cocody",
+  "Marcory",
+  "Yopougon",
+  "Plateau",
+  "Treichville",
+  "Koumassi",
+  "Port-Bouët",
+  "Abobo",
+  "Adjamé",
+  "Attécoubé",
+  "Bingerville",
+  "Grand-Bassam",
+  "Songon",
+];
 
 export default function ServicesPage() {
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tous les services");
   const [selectedCommune, setSelectedCommune] = useState("Toutes les communes");
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
 
-  const filteredServices = MOCK_SERVICES.filter((item) => {
+  useEffect(() => {
+    async function loadProvidersFromFirebase() {
+      try {
+        setLoading(true);
+        const colRef = collection(db, "service_providers");
+        const snapshot = await getDocs(colRef);
+        const fetched: ServiceItem[] = snapshot.docs.map((d) => {
+          const data = d.data();
+          const name = data.fullName || data.provider || data.name || "Prestataire";
+          const initials = name
+            .split(" ")
+            .filter(Boolean)
+            .map((part: string) => part[0])
+            .join("")
+            .slice(0, 2)
+            .toUpperCase() || "PR";
+
+          return {
+            id: d.id,
+            provider: name,
+            role: data.role || data.category || "Prestataire de services",
+            category: data.category || "Autre",
+            commune: data.commune || "Abidjan",
+            rating: typeof data.rating === "number" ? data.rating : 5.0,
+            reviewsCount: typeof data.reviewsCount === "number" ? data.reviewsCount : 0,
+            startingPrice:
+              typeof data.hourlyRate === "number"
+                ? data.hourlyRate
+                : typeof data.startingPrice === "number"
+                ? data.startingPrice
+                : 0,
+            priceUnit: data.priceUnit || "sur devis",
+            verified: Boolean(data.verified || data.status === "active"),
+            avatarBg: data.avatarBg || "bg-purple-100 text-[#9333EA]",
+            avatarText: initials,
+            description: data.description || "",
+            phone: data.phone || "",
+          };
+        });
+        setServices(fetched);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des prestataires Firestore:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProvidersFromFirebase();
+  }, []);
+
+  const filteredServices = services.filter((item) => {
     const matchesSearch =
       !searchTerm ||
       item.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -200,7 +138,7 @@ export default function ServicesPage() {
   });
 
   return (
-    <main className="mx-auto max-w-7xl py-6 md:py-10 animate-in fade-in duration-500">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8 animate-in fade-in duration-500">
       
       {/* Hero Header */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#A855F7] via-purple-600 to-indigo-700 p-6 sm:p-12 text-white shadow-xl mb-10">
@@ -281,10 +219,32 @@ export default function ServicesPage() {
         </h2>
       </div>
 
-      {filteredServices.length === 0 ? (
+      {loading ? (
+        <div className="flex min-h-64 items-center justify-center">
+          <LoadingSpinner />
+        </div>
+      ) : services.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-neutral-300 bg-white p-12 text-center shadow-sm">
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-purple-50 text-[#A855F7] mb-4">
+            <Briefcase className="h-8 w-8" />
+          </div>
+          <h3 className="text-lg font-bold text-neutral-900">Aucun prestataire enregistré</h3>
+          <p className="mt-1 text-sm text-neutral-500 max-w-md mx-auto">
+            Aucun professionnel n'est encore inscrit dans cette rubrique sur la plateforme W-COM.
+          </p>
+          <div className="mt-6">
+            <Link
+              href="/workspace"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#A855F7] px-5 py-2.5 text-sm font-bold text-white shadow-md hover:bg-[#9333EA] transition"
+            >
+              <Briefcase className="h-4 w-4" /> Devenir le premier prestataire
+            </Link>
+          </div>
+        </div>
+      ) : filteredServices.length === 0 ? (
         <div className="rounded-2xl border border-neutral-200 bg-white p-12 text-center shadow-sm">
-          <Briefcase className="mx-auto h-12 w-12 text-neutral-300" />
-          <h3 className="mt-3 text-lg font-bold text-neutral-800">Aucun prestataire trouvé</h3>
+          <Search className="mx-auto h-12 w-12 text-neutral-300" />
+          <h3 className="mt-3 text-lg font-bold text-neutral-800">Aucun résultat correspondant</h3>
           <p className="mt-1 text-sm text-neutral-500">Essayez de modifier votre mot-clé ou filtre de commune.</p>
         </div>
       ) : (
@@ -314,12 +274,16 @@ export default function ServicesPage() {
                     <div className="flex items-center gap-1 text-xs text-neutral-500 mt-0.5">
                       <MapPin className="h-3 w-3 text-neutral-400" />
                       <span>{service.commune}</span>
-                      <span>•</span>
-                      <div className="flex items-center text-amber-500 font-bold">
-                        <Star className="h-3 w-3 fill-amber-400 text-amber-400 mr-0.5" />
-                        <span>{service.rating}</span>
-                        <span className="text-neutral-400 font-normal ml-0.5">({service.reviewsCount})</span>
-                      </div>
+                      {service.reviewsCount > 0 && (
+                        <>
+                          <span>•</span>
+                          <div className="flex items-center text-amber-500 font-bold">
+                            <Star className="h-3 w-3 fill-amber-400 text-amber-400 mr-0.5" />
+                            <span>{service.rating}</span>
+                            <span className="text-neutral-400 font-normal ml-0.5">({service.reviewsCount})</span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -330,17 +294,21 @@ export default function ServicesPage() {
                 </h4>
 
                 {/* Description */}
-                <p className="text-xs text-neutral-500 line-clamp-3 leading-relaxed mb-4">
-                  {service.description}
-                </p>
+                {service.description && (
+                  <p className="text-xs text-neutral-500 line-clamp-3 leading-relaxed mb-4">
+                    {service.description}
+                  </p>
+                )}
               </div>
 
               {/* Footer */}
               <div className="border-t border-neutral-100 bg-neutral-50/60 p-4 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">À partir de</span>
+                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
+                    {service.startingPrice > 0 ? "Tarif indicatif" : "Tarif"}
+                  </span>
                   <div className="text-sm font-black text-neutral-900">
-                    {formatXOF(service.startingPrice)}
+                    {service.startingPrice > 0 ? formatXOF(service.startingPrice) : service.priceUnit}
                   </div>
                 </div>
 
@@ -356,79 +324,77 @@ export default function ServicesPage() {
         </div>
       )}
 
-      {/* Pro CTA at Bottom */}
-      <div className="mt-16 rounded-3xl bg-neutral-900 p-8 sm:p-12 text-white flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="space-y-2 text-center md:text-left">
-          <h3 className="text-2xl font-black">Vous proposez des services à Abidjan ?</h3>
-          <p className="text-neutral-400 text-sm max-w-xl">
-            Rejoignez W-COM et développez votre clientèle facilement. Créez votre profil en 2 minutes.
-          </p>
-        </div>
-        <Link
-          href="/workspace"
-          className="rounded-xl bg-wcom-orange px-6 py-3.5 text-sm font-bold text-white transition hover:bg-orange-600 shadow-lg shrink-0"
-        >
-          Créer mon profil pro →
-        </Link>
-      </div>
-
-      {/* Contact / Booking Modal */}
+      {/* Contact modal */}
       {selectedService && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-neutral-100 pb-4 mb-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in"
+          onClick={() => setSelectedService(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between border-b pb-4">
               <div className="flex items-center gap-3">
-                <div className={`grid h-10 w-10 place-items-center rounded-xl font-bold text-xs ${selectedService.avatarBg}`}>
+                <div className={`grid h-12 w-12 place-items-center rounded-2xl font-black text-sm shadow-sm ${selectedService.avatarBg}`}>
                   {selectedService.avatarText}
                 </div>
                 <div>
-                  <h4 className="font-black text-sm text-neutral-900">{selectedService.provider}</h4>
-                  <p className="text-xs text-neutral-500">{selectedService.commune}, Abidjan</p>
+                  <h3 className="font-black text-lg text-neutral-900">{selectedService.provider}</h3>
+                  <p className="text-xs text-neutral-500">{selectedService.commune} • {selectedService.category}</p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedService(null)}
-                className="rounded-full p-2 text-neutral-400 hover:bg-neutral-100 transition"
+                className="rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <span className="text-xs font-semibold text-neutral-400">Prestation</span>
-                <p className="font-bold text-sm text-neutral-800">{selectedService.role}</p>
+            <div className="space-y-3">
+              <div className="rounded-2xl bg-neutral-50 p-4 border border-neutral-100">
+                <span className="text-[11px] font-bold uppercase text-neutral-400">Prestation proposée</span>
+                <p className="text-sm font-bold text-neutral-800 mt-0.5">{selectedService.role}</p>
+                {selectedService.description && (
+                  <p className="text-xs text-neutral-600 mt-2 leading-relaxed">{selectedService.description}</p>
+                )}
               </div>
 
-              <div className="rounded-2xl bg-purple-50 p-4 border border-purple-100">
-                <span className="text-xs font-bold text-purple-700 uppercase tracking-wider block">Tarif estimé</span>
-                <p className="text-xl font-black text-purple-900 mt-1">
-                  {formatXOF(selectedService.startingPrice)} <span className="text-xs font-medium text-purple-600">/ {selectedService.priceUnit}</span>
+              {selectedService.startingPrice > 0 && (
+                <div className="flex items-center justify-between rounded-2xl bg-purple-50/60 p-4 border border-purple-100">
+                  <span className="text-xs font-bold text-purple-900">Tarif de départ indicatif</span>
+                  <span className="text-base font-black text-[#9333EA]">
+                    {formatXOF(selectedService.startingPrice)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 pt-2">
+              {selectedService.phone && (
+                <>
+                  <a
+                    href={`https://wa.me/${selectedService.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Bonjour ${selectedService.provider}, je vous contacte depuis la plateforme W-COM au sujet de votre service "${selectedService.role}".`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white shadow-md hover:bg-emerald-700 transition"
+                  >
+                    Discuter sur WhatsApp
+                  </a>
+                  <a
+                    href={`tel:${selectedService.phone}`}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 py-2.5 text-sm font-bold text-neutral-700 hover:bg-neutral-50 transition"
+                  >
+                    <Phone className="h-4 w-4" /> Appeler : {selectedService.phone}
+                  </a>
+                </>
+              )}
+              {!selectedService.phone && (
+                <p className="text-center text-xs text-neutral-500 py-2">
+                  Aucun numéro direct renseigné par le prestataire.
                 </p>
-              </div>
-
-              <p className="text-xs text-neutral-600 leading-relaxed">
-                Contactez directement ce prestataire pour discuter de votre besoin, convenir d'une date ou demander un devis personnalisé.
-              </p>
-
-              <div className="pt-2 space-y-2">
-                <a
-                  href={`https://wa.me/${selectedService.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Bonjour ${selectedService.provider}, j'ai vu votre service "${selectedService.role}" sur W-COM et j'aimerais plus d'informations.`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-3 text-sm font-bold text-white shadow-md hover:bg-green-700 transition"
-                >
-                  <Phone className="h-4 w-4" />
-                  Contacter via WhatsApp
-                </a>
-
-                <button
-                  onClick={() => setSelectedService(null)}
-                  className="w-full rounded-xl border border-neutral-200 py-2.5 text-xs font-bold text-neutral-600 hover:bg-neutral-50 transition"
-                >
-                  Fermer
-                </button>
-              </div>
+              )}
             </div>
           </div>
         </div>

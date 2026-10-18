@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Search,
   Trash2,
+  ArrowLeft,
 } from "lucide-react";
 import { WComLogo } from "@/components/brand/wcom-logo";
 import { LoadingCircle, LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -326,7 +327,19 @@ export default function SellerDashboardPage() {
 
   if (storeLookupDone && !storeId) {
     return (
-      <main className="min-h-screen bg-wcom-offwhite flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700">
+      <main className="relative min-h-screen bg-wcom-offwhite flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700">
+        {/* Header with back button */}
+        <header className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between">
+          <Link
+            href="/seller-setup"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-neutral-200 text-neutral-600 transition hover:bg-neutral-50 hover:text-wcom-ink"
+            aria-label="Retour"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <WComLogo size="sm" />
+        </header>
+
         <div className="max-w-md w-full">
           <div className="h-20 w-20 bg-wcom-green/10 text-wcom-green rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-md">
             <ShoppingBag className="h-10 w-10" />
